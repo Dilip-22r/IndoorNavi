@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indoor AR Navigation</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Indoor AR Navigation</h1>
+        <p class="subtitle">Block-C, Floor 2</p>
+
+        <div class="form-group">
+            <label>Start Location:</label>
+            <button id="scanQrBtn" class="btn btn-secondary">📷 Scan QR Code</button>
+            <p id="scannedRoom" style="margin-top: 10px; font-weight: bold;"></p>
+            <div id="qr-reader" style="width: 100%; display: none; margin: 10px 0;"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="start">Or Select Manually:</label>
+            <select id="start" class="select-box">
+                <option value="">-- Scan QR or Select --</option>
+                <option value="C201">C-201</option>
+                <option value="C203">C-203</option>
+                <option value="C205">C-205</option>
+                <option value="C214">C-214</option>
+                <option value="Staircase3">Staircase 3</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="destination">Destination:</label>
+            <select id="destination" class="select-box">
+                <option value="">-- Select Destination --</option>
+                <option value="C203">C-203</option>
+                <option value="C205">C-205</option>
+                <option value="C214">C-214</option>
+            </select>
+        </div>
+
+        <button id="startBtn" class="btn">Start Navigation</button>
+        <p id="error" class="error"></p>
+    </div>
+
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <script src="js/routes.js"></script>
+    <script>
+        let html5QrCode;
+        const validRooms = ['C201', 'C203', 'C205', 'C214', 'Staircase3'];
+
+        // QR Scanner functionality
+        document.getElementById('scanQrBtn').addEventListener('click', function () {
+            const qrReader = document.getElementById('qr-reader');
+            const btn = this;
+            const scannedRoomEl = document.getElementById('scannedRoom');
+
+            if (qrReader.style.display === 'none') {
+                // Start scanning
+                qrReader.style.display = 'block';
+                btn.textContent = '❌ Stop Scanning';
+                btn.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)';
+                scannedRoomEl.textContent = 'Point camera at QR code...';
+                scannedRoomEl.style.color = '#666';
+
+                html5QrCode = new Html5Qrcode("qr-reader");
+                html5QrCode.start(
+                    { facingMode: "environment" }, // Use back camera
+                    {
+                        fps: 10,    // Scans per second
+                        qrbox: { width: 250, height: 250 }  // Scan area
+                    },
+                    (decodedText) => {
+                        // QR code scanned successfully
+                        console.log('QR Code detected:', decodedText);
+
+                        // Validate room code
+                        if (validRooms.includes(decodedText)) {
+                            // Valid room code
+                            document.getElementById('start').value = decodedText;
+                            const roomName = decodedText.replace('C', 'C-');
+                            scannedRoomEl.textContent = `✓ Start Location: ${roomName}`;
+                            scannedRoomEl.style.color = '#00ff00';
+
+                            // Stop scanning
+                            html5QrCode.stop().then(() => {
+                                qrReader.style.display = 'none';
+                                btn.textContent = '📷 Scan QR Code';
+                                btn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                            }).catch(err => {
+                                console.error('Stop error:', err);
+                            });
+                        } else {
+                            // Invalid room code
+                            scannedRoomEl.textContent = `⚠ Invalid QR code: ${decodedText}`;
+                            scannedRoomEl.style.color = '#ff6b6b';
+                        }
+                    },
+                    (errorMessage) => {
+                        // Scanning... (fires continuously, ignore)
+                    }
+                ).catch(err => {
+                    console.error('Camera error:', err);
+                    alert('Camera access denied. Please enable camera permissions in your browser settings.');
+                    qrReader.style.display = 'none';
+                    btn.textContent = '📷 Scan QR Code';
+                    btn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                    scannedRoomEl.textContent = '';
+                });
+            } else {
+                // Stop scanning
+                html5QrCode.stop().then(() => {
+                    qrReader.style.display = 'none';
+                    btn.textContent = '📷 Scan QR Code';
+                    btn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                }).catch(err => {
+                    console.error('Stop error:', err);
+                });
+            }
+        });
+
+        // Original navigation logic with enhanced validation
+        document.getElementById('startBtn').addEventListener('click', function () {
+            const start = document.getElementById('start').value;
+            const destination = document.getElementById('destination').value;
+            const errorEl = document.getElementById('error');
+
+            if (!start) {
+                errorEl.textContent = 'Please scan QR code or select start location';
+                return;
+            }
+
+            if (!destination) {
+                errorEl.textContent = 'Please select a destination';
+                return;
+            }
+
+            if (start === destination) {
+                errorEl.textContent = 'Start and destination cannot be the same';
+                return;
+            }
+
+            const routeKey = start + '_to_' + destination;
+            const route = navigationData.routes[routeKey];
+
+            if (!route) {
+                errorEl.textContent = 'Route not available for this combination';
+                return;
+            }
+
+            localStorage.setItem('currentRoute', JSON.stringify(route));
+            localStorage.setItem('routeKey', routeKey);
+            localStorage.setItem('step', 0);
+            localStorage.setItem('destination', destination);
+            window.location.href = 'navigation.html';
+        });
+    </script>
+</body>
+
+</html>

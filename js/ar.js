@@ -60,8 +60,13 @@ function updateRootPosition() {
     if (!root) return;
     const baseHeight = -1.6; // Floor level assumes camera at 1.6m
     const newY = baseHeight + heightOffset;
-    root.setAttribute('position', `0 ${newY} 0`);
-    console.log(`Height adjusted to: ${newY}`);
+    
+    // Respect current virtual position if any
+    const currentX = window.virtualUserPos ? -window.virtualUserPos.x : 0;
+    const currentZ = window.virtualUserPos ? -window.virtualUserPos.z : 0;
+    
+    root.setAttribute('position', `${currentX} ${newY} ${currentZ}`);
+    console.log(`Height/Pos updated: ${newY}, ${currentX}, ${currentZ}`);
 }
 
 function adjustHeight(delta) {
@@ -121,11 +126,44 @@ function renderCurrentSegment() {
     }
 }
 
+let lastSpokenIndex = -1;
+
+function speak(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Stop previous
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
 function updateInstructions() {
     const arText = document.getElementById('arText');
-    if (arText) arText.textContent = "Follow the line";
     const arDistance = document.getElementById('arDistance');
-    if (arDistance) arDistance.textContent = `segment ${currentStepIndex + 1}`;
+    
+    // Get Instruction for current step
+    let instruction = "Follow the glowing line";
+    if (route && route.instructions && route.instructions[currentStepIndex]) {
+        instruction = route.instructions[currentStepIndex];
+    } else if (currentStepIndex >= navigationPathPoints.length - 1) {
+        instruction = "You have arrived!";
+    }
+
+    // Update UI
+    if (arText) arText.textContent = instruction;
+    
+    // Update Distance/Step info
+    if (arDistance) {
+        // Calculate remaining distance? Or just step count
+        const total = navigationPathPoints.length - 1;
+        arDistance.textContent = `Step ${currentStepIndex + 1} of ${total}`;
+    }
+
+    // Voice Announcement (Only if step changed)
+    if (currentStepIndex !== lastSpokenIndex) {
+        speak(instruction);
+        lastSpokenIndex = currentStepIndex;
+    }
 }
 
 // 1. Path (Green Chevrons)
@@ -322,7 +360,9 @@ function drawMiniMap() {
     // Get User Position & Rotation
     const root = document.getElementById('navigationRoot');
     const camera = document.querySelector('[camera]');
-    const camPos = camera ? camera.getAttribute('position') : {x:0, y:0, z:0};
+    
+    // Use Virtual Position if available (Pedometer), else Camera (Static 0,0,0)
+    const camPos = window.virtualUserPos || (camera ? camera.getAttribute('position') : {x:0, y:0, z:0});
     const camRot = camera ? camera.getAttribute('rotation') : {x:0, y:0, z:0};
 
     // Image Specs
@@ -477,15 +517,253 @@ window.calibrateMap = (u, v, s) => {
     console.log("Map Config Update:", MAP_CONFIG);
 };
 
+// --- PEDOMETER & MOVEMENT LOGIC ---
+let lastStepTime = 0;
+let userDistanceOnPath = 0; // Distance traveled on CURRENT segment
+const STEP_LENGTH = 0.7; // Meters per step
+const STEP_THRESHOLD = 11.0; // Acceleration magnitude
+
+function setupPedometer() {
+    if (window.DeviceMotionEvent) {
+        window.addEventListener('devicemotion', (event) => {
+            const acc = event.accelerationIncludingGravity;
+            if (!acc) return;
+            
+            const magnitude = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
+            const now = Date.now();
+            
+            // Detect Step
+            if (magnitude > STEP_THRESHOLD && (now - lastStepTime > 600)) {
+                lastStepTime = now;
+                onStepDetected();
+            }
+        });
+        console.log("Pedometer Active");
+    } else {
+        console.warn("DeviceMotion not supported");
+    }
+}
+
+function onStepDetected() {
+    // 1. Move User Forward along the Path
+    if (!route || !navigationPathPoints || navigationPathPoints.length === 0) return;
+    
+    // Get current segment
+    const start = navigationPathPoints[currentStepIndex];
+    const end = navigationPathPoints[currentStepIndex + 1];
+    
+    if (!end) return; // End of path
+    
+    // Calculate Segment Length
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const segmentLen = Math.sqrt(dx*dx + dz*dz);
+    
+    // Move
+    userDistanceOnPath += STEP_LENGTH;
+    
+    // Check if we finished segment
+    if (userDistanceOnPath >= segmentLen) {
+        // Next Segment
+        currentStepIndex++;
+        userDistanceOnPath = 0; // Reset for new segment
+        
+        // Render new segment
+        renderCurrentSegment(); 
+        
+        // Voice
+        speak("Step complete. Advancing to next segment.");
+    } else {
+        // Just update position visuals (Mini-Map & World)
+        updateUserPosition(start, end, userDistanceOnPath / segmentLen);
+    }
+}
+
+function updateUserPosition(start, end, progress) {
+    // 1. Calculate Virtual Position (Lerp)
+    const currentX = start.x + (end.x - start.x) * progress;
+    const currentZ = start.z + (end.z - start.z) * progress;
+    
+    // 2. Move Navigation Root BACKWARDS to simulate User moving FORWARD
+    // If User is at (0,0,-5), Root should be at (0,0,5) relative to Camera(0,0,0)?
+    // AR.js Camera is fixed at 0,0,0.
+    // If we want the user to "feel" like they moved 5m North...
+    // We should move the World 5m South.
+    
+    // BUT! Our coordinate system is "Start Point = 0,0,0".
+    // So objects are drawn at (x, z).
+    // If User is at (currentX, currentZ), 
+    // We need to shift everything by (-currentX, -currentZ).
+    
+    const root = document.getElementById('navigationRoot');
+    if (root) {
+        // Keep heightOffset from "Up/Down" buttons
+        const baseHeight = -1.6 + heightOffset; 
+        
+        // Inverse translation
+        root.setAttribute('position', `${-currentX} ${baseHeight} ${-currentZ}`);
+    }
+    
+    // 3. Update MiniMap
+    // MiniMap needs "User Position relative to Map Start".
+    // We need to expose `camPos` to `drawMiniMap`.
+    // Currently `drawMiniMap` reads `camera.getAttribute('position')`.
+    // But Camera is static (0,0,0).
+    // We need to override the "User Position" in `drawMiniMap`.
+    
+    // Let's store it in a global
+    window.virtualUserPos = { x: currentX, y: 0, z: currentZ };
+}
+
+// Override drawMiniMap to use virtualUserPos
+// ... (We need to modify drawMiniMap slightly to check `window.virtualUserPos` instead of camera pos)
+// But I can't edit `drawMiniMap` easily here since I'm appending.
+// I'll create a new function `getVirtualCameraPosition` and patch `drawMiniMap` later?
+// Or just reuse the `camPos` variable in `drawMiniMap` if I can find it.
+// I'll update `drawMiniMap` in a separate Edit.
+
+// Init
+setupPedometer();
+
+// --- QR RELOCALIZATION (Dynamic Path Update) ---
+let arQrScanner = null;
+
+function setupRelocalization() {
+    const relocBtn = document.getElementById('relocalizeBtn');
+    const overlay = document.getElementById('ar-qr-overlay');
+    const closeBtn = document.getElementById('close-ar-qr');
+    
+    if (!relocBtn || !overlay) return;
+    
+    // Open Scanner
+    relocBtn.addEventListener('click', () => {
+        overlay.style.display = 'flex';
+        startArQrScanner();
+    });
+    
+    // Close Scanner
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            stopArQrScanner();
+            overlay.style.display = 'none';
+        });
+    }
+}
+
+function startArQrScanner() {
+    if (arQrScanner) return; // Already running?
+    
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    arQrScanner = new Html5Qrcode("ar-qr-reader");
+    
+    arQrScanner.start({ facingMode: "environment" }, config, async (decodedText) => {
+        // Success
+        console.log("AR QR Relocalize:", decodedText);
+        handleRelocalization(decodedText);
+    }, (err) => {
+        // scan error, ignore
+    }).catch(err => {
+        console.error("Scanner Error", err);
+        alert("Camera error.");
+        document.getElementById('ar-qr-overlay').style.display = 'none';
+    });
+}
+
+function stopArQrScanner() {
+    if (arQrScanner) {
+        arQrScanner.stop().then(() => {
+            arQrScanner.clear();
+            arQrScanner = null;
+        }).catch(err => console.error("Stop Error", err));
+    }
+}
+
+async function handleRelocalization(newLocationCode) {
+    // 1. Stop Scanner
+    stopArQrScanner();
+    document.getElementById('ar-qr-overlay').style.display = 'none';
+    
+    // 2. Validate Location
+    // We need MapService
+    if (typeof MapService === 'undefined') {
+        alert("Map Service not loaded.");
+        return;
+    }
+    
+    // Ensure Map is Loaded
+    if (!MapService.graph) {
+        await MapService.loadMap();
+    }
+    
+    // Normalize Input (C201 -> c201)
+    const newStart = newLocationCode.toLowerCase().replace('-', '');
+    
+    // Check if node exists
+    if (!MapService.graph[newStart]) {
+        alert(`Invalid Location Code: ${newLocationCode}`);
+        speak("Invalid location code.");
+        return;
+    }
+    
+    // 3. Get Current Destination
+    const dest = localStorage.getItem('destination');
+    if (!dest) {
+        alert("No destination set.");
+        return;
+    }
+    const destKey = dest.toLowerCase();
+    
+    // 4. Recalculate Path
+    const path = MapService.bfs(newStart, destKey);
+    if (!path) {
+        alert("Cannot find path from here.");
+        speak("Cannot find path from here.");
+        return;
+    }
+    
+    // 5. Generate New AR Data
+    const points = MapService.generatePathCoordinates(path);
+    const instructions = MapService.generateDirections(path);
+    
+    // 6. Update State
+    route = {
+        points: points,
+        instructions: instructions,
+        distance: path.length * 5
+    };
+    navigationPathPoints = points;
+    currentStepIndex = 0;
+    lastSpokenIndex = -1;
+    
+    // Reset Pedometer Virtual Pos
+    window.virtualUserPos = { x: 0, y: 0, z: 0 };
+    lastStepTime = Date.now();
+    userDistanceOnPath = 0;
+    
+    // 7. Update Distance Display (Legacy Check) & Storage
+    localStorage.setItem('currentRoute', JSON.stringify(route));
+    
+    // 8. Visual Feedback
+    speak(`Position updated to ${newLocationCode}. Recalculating route.`);
+    renderCurrentSegment();
+    
+    const arText = document.getElementById('arText');
+    if (arText) arText.textContent = `Relocalized to ${newLocationCode.toUpperCase()}`;
+}
+
 // Init
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setupEvents();
+        setupRelocalization(); // Added
         setTimeout(loadAR, 1000);
         requestAnimationFrame(drawMiniMap);
+        setupPedometer();
     });
 } else {
     setupEvents();
+    setupRelocalization(); // Added
     setTimeout(loadAR, 1000);
     requestAnimationFrame(drawMiniMap);
+    setupPedometer();
 }

@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Indoor AR Navigation</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- QR Code Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 
 <body>
@@ -13,10 +15,18 @@
         <h1>Indoor AR Navigation</h1>
         <p class="subtitle">Block-C, Floor 2</p>
 
+        <!-- QR Scan Section -->
+        <div class="form-group" style="text-align: center;">
+            <button id="scanQrBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">📷 Scan QR
+                Code</button>
+            <p id="scannedRoom" style="font-weight: bold; min-height: 20px;"></p>
+            <div id="qr-reader" style="width: 100%; display: none; margin: 10px auto;"></div>
+        </div>
+
         <div class="form-group">
-            <label for="start">Start Room:</label>
+            <label for="start">Start Location:</label>
             <select id="start" class="select-box">
-                <option value="C201">C-201 (Fixed Start)</option>
+                <option value="">-- Load Map First --</option>
             </select>
         </div>
 
@@ -24,9 +34,6 @@
             <label for="destination">Destination:</label>
             <select id="destination" class="select-box">
                 <option value="">-- Select Destination --</option>
-                <option value="C203">C-203</option>
-                <option value="C205">C-205</option>
-                <option value="C214">C-214</option>
             </select>
         </div>
 
@@ -58,8 +65,8 @@
                 .sort();
 
             // Clear existing options
-            startSelect.innerHTML = '<option value="">Select Start...</option>';
-            destSelect.innerHTML = '<option value="">Select Destination...</option>';
+            startSelect.innerHTML = '<option value="">-- Select Start --</option>';
+            destSelect.innerHTML = '<option value="">-- Select Destination --</option>';
 
             rooms.forEach(room => {
                 const opt1 = document.createElement('option');
@@ -79,18 +86,105 @@
             }
         }
 
+        // --- QR Code Logic ---
+        let html5QrCode;
+        document.getElementById('scanQrBtn').addEventListener('click', function () {
+            const qrReader = document.getElementById('qr-reader');
+            const btn = this;
+            const scannedRoomEl = document.getElementById('scannedRoom');
+            const startSelect = document.getElementById('start');
+
+            if (qrReader.style.display === 'none') {
+                // Start scanning
+                qrReader.style.display = 'block';
+                btn.textContent = '❌ Stop Scanning';
+                btn.style.background = '#ff4444'; // Red
+                scannedRoomEl.textContent = 'Point camera at QR code...';
+                scannedRoomEl.style.color = '#666';
+
+                html5QrCode = new Html5Qrcode("qr-reader");
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+                html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                    // Success Callback
+                    console.log('QR Scanned:', decodedText);
+
+                    // Check if scanned text matches a room in dropdown
+                    // Dropdown values are UPPERCASE (C201, C203)
+                    // We assume QR returns "C201" or "C-201" or similar.
+                    // Normalize: Remove spaces, hyphens? User repo uses "C201".
+
+                    let match = null;
+                    const options = Array.from(startSelect.options).map(o => o.value);
+
+                    // Direct Match
+                    if (options.includes(decodedText)) match = decodedText;
+
+                    // Try Uppercase
+                    if (!match && options.includes(decodedText.toUpperCase())) match = decodedText.toUpperCase();
+
+                    // Try removing hyphens (C-201 -> C201)
+                    if (!match) {
+                        const clean = decodedText.replace('-', '').toUpperCase();
+                        if (options.includes(clean)) match = clean;
+                    }
+
+                    if (match) {
+                        startSelect.value = match;
+                        scannedRoomEl.textContent = `✓ Detected: ${match}`;
+                        scannedRoomEl.style.color = 'green';
+
+                        // Stop Scanning automatically
+                        html5QrCode.stop().then(() => {
+                            qrReader.style.display = 'none';
+                            btn.textContent = '📷 Scan QR Code';
+                            btn.style.background = ''; // Reset
+                        });
+                    } else {
+                        scannedRoomEl.textContent = `⚠ Unknown QR: ${decodedText}`;
+                        scannedRoomEl.style.color = 'red';
+                    }
+                }, (errorMessage) => {
+                    // Ignore scan errors (scanning in progress)
+                }).catch(err => {
+                    console.error("Camera Error", err);
+                    alert("Camera not found or permission denied.");
+                    qrReader.style.display = 'none';
+                    btn.textContent = '📷 Scan QR Code';
+                    btn.style.background = '';
+                });
+
+            } else {
+                // Stop scanning
+                if (html5QrCode) {
+                    html5QrCode.stop().then(() => {
+                        qrReader.style.display = 'none';
+                        btn.textContent = '📷 Scan QR Code';
+                        btn.style.background = '';
+                    });
+                } else {
+                    qrReader.style.display = 'none';
+                }
+            }
+        });
+
+        // --- Navigation Logic ---
         document.getElementById('startBtn').addEventListener('click', function () {
-            const start = document.getElementById('start').value.toLowerCase();
-            const destination = document.getElementById('destination').value.toLowerCase();
+            const startValue = document.getElementById('start').value;
+            const destValue = document.getElementById('destination').value;
             const errorEl = document.getElementById('error');
 
-            if (!start || !destination) {
+            if (!startValue || !destValue) {
                 errorEl.textContent = 'Please select both start and destination';
                 return;
             }
 
+            // Convert keys to Lowercase for MapService (c201, c203)
+            const startKey = startValue.toLowerCase();
+            const destKey = destValue.toLowerCase();
+
             // 1. Calculate Path (BFS)
-            const path = MapService.bfs(start, destination);
+            const path = MapService.bfs(startKey, destKey);
             if (!path) {
                 errorEl.textContent = 'No path found between these locations.';
                 return;
@@ -111,7 +205,7 @@
             };
 
             localStorage.setItem('currentRoute', JSON.stringify(routeObject));
-            localStorage.setItem('destination', destination.toUpperCase());
+            localStorage.setItem('destination', destValue); // Keep display value
             localStorage.setItem('step', 0);
             localStorage.setItem('routeKey', "custom"); // flag for AR
 

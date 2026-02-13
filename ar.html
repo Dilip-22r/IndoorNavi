@@ -8,6 +8,7 @@
     <!-- Use stable compatible versions -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -159,9 +160,20 @@
     </div>
 
     <div class="ar-overlay">
-        <div class="ar-instruction">
-            <p id="arText" class="ar-text">Initializing AR...</p>
-            <p id="arDistance" class="ar-distance">Please wait...</p>
+        <div class="controls">
+            <button id="recenterBtn" class="btn">Recenter Path</button>
+            <!-- <button id="nextBtn" class="btn">Next Step</button> -->
+            <button id="relocalizeBtn" class="btn"
+                style="background: linear-gradient(135deg, #FF9900 0%, #FFCC00 100%); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">📷</button>
+        </div>
+
+        <!-- QR Reader Overlay -->
+        <div id="ar-qr-overlay"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center;">
+            <p style="color: white; font-size: 1.2em; margin-bottom: 20px;">Scan Room QR to Fix Position</p>
+            <div id="ar-qr-reader" style="width: 300px;"></div>
+            <button id="close-ar-qr"
+                style="margin-top: 20px; padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 5px;">Cancel</button>
         </div>
 
         <!-- Controls Container -->
@@ -235,6 +247,7 @@
     </script>
 
     <script src="js/routes.js"></script>
+    <script src="js/mapService.js"></script>
     <script src="js/ar.js"></script>
 </body>
 
