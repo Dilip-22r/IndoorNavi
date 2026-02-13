@@ -24,23 +24,42 @@ function updateDisplay(destination) {
 
     const totalPoints = route.points.length;
     
+    const stepTextEl = stepText; // Alias for clarity
+    
     if (step >= totalPoints - 1) {
-        stepText.textContent = `You have arrived at C-${destination}!`;
+        stepText.textContent = `You have arrived at ${destination}!`;
         stepCount.textContent = `Total distance: ${route.distance}m`;
         nextBtn.disabled = true;
         nextBtn.textContent = 'Completed';
+        speak("You have arrived at your destination.");
     } else {
-        const currentPoint = route.points[step];
-        const nextPoint = route.points[step + 1];
+        // Use Pre-calculated instructions from MapService
+        let instruction = "Proceed to next waypoint.";
+        if (route.instructions && route.instructions[step]) {
+            instruction = route.instructions[step];
+        } else {
+             instruction = `Move to next point.`;
+        }
         
-        // Calculate direction
-        let direction = 'forward';
-        if (nextPoint.x > currentPoint.x) direction = 'right';
-        else if (nextPoint.x < currentPoint.x) direction = 'left';
-        else if (nextPoint.z > currentPoint.z) direction = 'forward';
-        
-        stepText.textContent = `Move ${direction} to next point (${route.segmentLength || 5}m)`;
+        stepText.textContent = instruction;
         stepCount.textContent = `Step ${step + 1} of ${totalPoints - 1} | Distance: ${route.distance}m`;
+        
+        // Speak instruction (Debounced)
+        speak(instruction);
+    }
+}
+
+// Text-to-Speech Helper
+function speak(text) {
+    if ('speechSynthesis' in window) {
+        // Cancel previous speech to avoid queue buildup
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
     }
 }
 

@@ -1,0 +1,139 @@
+{
+  "floor": 0,
+  "nodes": {
+    "corridor_right": {
+      "type": "corridor",
+      "neighbors": [
+        "corridor_top",
+        "c202",
+        "c203",
+        "c204",
+        "c205",
+        "c206",
+        "c207",
+        "c208"
+      ],
+      "direction": "vertical"
+    },
+    "corridor_top": {
+      "type": "corridor",
+      "neighbors": [
+        "corridor_right",
+        "corridor_left",
+        "c210",
+        "c209",
+        "staircase_3"
+      ],
+      "direction": "horizontal"
+    },
+    "corridor_left": {
+      "type": "corridor",
+      "neighbors": [
+        "corridor_top",
+        "c211",
+        "c212",
+        "c213",
+        "c214"
+      ],
+      "direction": "vertical"
+    },
+    "c202": {
+      "type": "room",
+      "neighbors": [
+        "corridor_right"
+      ],
+      "position": "outer"
+    },
+    "c203": {
+      "type": "room",
+      "neighbors": [
+        "corridor_right"
+      ],
+      "position": "outer"
+    },
+    "c204": {
+      "type": "room",
+      "neighbors": [
+        "corridor_right"
+      ],
+      "position": "outer"
+    },
+    "c205": {
+      "type": "room",
+      "neighbors": [
+        "corridor_right"
+      ],
+      "position": "outer"
+    },
+    "c206": {
+      "type": "room",
+      "neighbors": [
+        "corridor_right"
+      ],
+      "position": "outer"
+    },
+    "c207": {
+      "type": "room",
+      "neighbors": [
+        "corridor_right"
+      ],
+      "position": "outer"
+    },
+    "c208": {
+      "type": "room",
+      "neighbors": [
+        "corridor_right"
+      ],
+      "position": "outer"
+    },
+    "c214": {
+      "type": "room",
+      "neighbors": [
+        "corridor_left"
+      ],
+      "position": "outer"
+    },
+    "c213": {
+      "type": "room",
+      "neighbors": [
+        "corridor_left"
+      ],
+      "position": "outer"
+    },
+    "c212": {
+      "type": "room",
+      "neighbors": [
+        "corridor_left"
+      ],
+      "position": "outer"
+    },
+    "c211": {
+      "type": "room",
+      "neighbors": [
+        "corridor_left"
+      ],
+      "position": "outer"
+    },
+    "c210": {
+      "type": "room",
+      "neighbors": [
+        "corridor_top"
+      ],
+      "position": "inner"
+    },
+    "c209": {
+      "type": "room",
+      "neighbors": [
+        "corridor_top"
+      ],
+      "position": "inner"
+    },
+    "staircase_3": {
+      "type": "staircase",
+      "neighbors": [
+        "corridor_top"
+      ],
+      "position": "inner"
+    }
+  }
+}

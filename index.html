@@ -34,32 +34,92 @@
         <p id="error" class="error"></p>
     </div>
 
-    <script src="js/routes.js"></script>
+    <script src="js/mapService.js"></script>
     <script>
+        // Initialize Map
+        async function init() {
+            await MapService.loadMap();
+            populateDropdowns();
+        }
+
+        function populateDropdowns() {
+            const startSelect = document.getElementById('start');
+            const destSelect = document.getElementById('destination');
+
+            if (!MapService.graph) return;
+
+            // extracting all rooms and staircases, sorting them
+            const rooms = Object.keys(MapService.graph)
+                .filter(key => {
+                    const type = MapService.graph[key].type;
+                    return type === 'room' || type === 'staircase';
+                })
+                .map(key => key.toUpperCase())
+                .sort();
+
+            // Clear existing options
+            startSelect.innerHTML = '<option value="">Select Start...</option>';
+            destSelect.innerHTML = '<option value="">Select Destination...</option>';
+
+            rooms.forEach(room => {
+                const opt1 = document.createElement('option');
+                opt1.value = room;
+                opt1.textContent = room;
+                startSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = room;
+                opt2.textContent = room;
+                destSelect.appendChild(opt2);
+            });
+
+            // Set Default Start as C201 if exists
+            if (rooms.includes('C201')) {
+                startSelect.value = 'C201';
+            }
+        }
+
         document.getElementById('startBtn').addEventListener('click', function () {
-            const start = document.getElementById('start').value;
-            const destination = document.getElementById('destination').value;
+            const start = document.getElementById('start').value.toLowerCase();
+            const destination = document.getElementById('destination').value.toLowerCase();
             const errorEl = document.getElementById('error');
 
-            if (!destination) {
-                errorEl.textContent = 'Please select a destination';
+            if (!start || !destination) {
+                errorEl.textContent = 'Please select both start and destination';
                 return;
             }
 
-            const routeKey = start + '_to_' + destination;
-            const route = navigationData.routes[routeKey];
-
-            if (!route) {
-                errorEl.textContent = 'Route not available for this destination';
+            // 1. Calculate Path (BFS)
+            const path = MapService.bfs(start, destination);
+            if (!path) {
+                errorEl.textContent = 'No path found between these locations.';
                 return;
             }
 
-            localStorage.setItem('currentRoute', JSON.stringify(route));
-            localStorage.setItem('routeKey', routeKey);
+            // 2. Generate 3D Coordinates (for AR)
+            const points = MapService.generatePathCoordinates(path);
+
+            // 3. Generate Text Instructions (for 2D Nav)
+            const instructions = MapService.generateDirections(path);
+
+            // 4. Save to LocalStorage
+            const routeObject = {
+                path: path,
+                points: points,
+                instructions: instructions,
+                distance: path.length * 5 // Approx distance
+            };
+
+            localStorage.setItem('currentRoute', JSON.stringify(routeObject));
+            localStorage.setItem('destination', destination.toUpperCase());
             localStorage.setItem('step', 0);
-            localStorage.setItem('destination', destination);
+            localStorage.setItem('routeKey', "custom"); // flag for AR
+
             window.location.href = 'navigation.html';
         });
+
+        // Run Init
+        init();
     </script>
 </body>
 

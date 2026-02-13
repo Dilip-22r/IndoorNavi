@@ -6,48 +6,48 @@ let route = null; // Defined in routes.js but accessed here
 
 function loadAR() {
     console.log("AR Script Starting...");
+    
+    // 1. Try loading Custom Route from LocalStorage (Priority for SmartNavigation)
+    const customRouteData = localStorage.getItem('currentRoute');
+    if (customRouteData) {
+        try {
+            route = JSON.parse(customRouteData);
+            console.log("Loaded Custom Route from Storage:", route);
+            
+            if (route.points && route.points.length > 0) {
+                navigationPathPoints = route.points;
+                currentStepIndex = 0;
+                renderCurrentSegment();
+                
+                // Update UI Labels
+                const destText = document.getElementById('destinationText');
+                const destName = localStorage.getItem('destination') || "Unknown";
+                if (destText) destText.setAttribute('value', "Target: " + destName);
+                
+                return; // Success!
+            }
+        } catch (e) {
+            console.error("Failed to parse custom route:", e);
+        }
+    }
+
+    // 2. Fallback to Legacy URL Param (if any)
     const urlParams = new URLSearchParams(window.location.search);
     let routeId = urlParams.get('route');
 
-    // Fallback to LocalStorage if no URL param
-    if (!routeId) {
-        routeId = localStorage.getItem('routeKey');
-        if (routeId) console.log("Recovered routeId from LocalStorage: " + routeId);
-    }
-
-    // Handle different data structures (robustness)
-    let availableRoutes = {};
-    if (typeof navigationData !== 'undefined' && navigationData.routes) {
-        availableRoutes = navigationData.routes;
-    } else if (typeof routes !== 'undefined') {
-        availableRoutes = routes;
-    }
-
-    if (routeId && availableRoutes[routeId]) {
-        console.log("Route loaded for: " + routeId);
-        route = availableRoutes[routeId];
-        navigationPathPoints = route.points;
-        currentStepIndex = 0;
-        
-        const destText = document.getElementById('destinationText');
-        if (destText) destText.setAttribute('value', "Target: " + routeId);
-
-        renderCurrentSegment();
+    if (routeId && typeof navigationData !== 'undefined' && navigationData.routes[routeId]) {
+         console.log("Legacy Route loaded: " + routeId);
+         route = navigationData.routes[routeId];
+         navigationPathPoints = route.points;
+         currentStepIndex = 0;
+         renderCurrentSegment();
     } else {
-        console.error("Route not found or data missing!");
+        console.error("No valid route found in Storage or URL.");
         const arText = document.getElementById('arText');
         if (arText) {
-            if (!routeId) arText.textContent = "Error: No Route Selected";
-            else if (!availableRoutes[routeId]) arText.textContent = "Error: Route Not Found";
-            else arText.textContent = "Error: Data Loading Failed";
-            
+            arText.textContent = "Error: No Navigation Data";
             arText.style.color = 'red';
         }
-        // Fallback for debugging (auto-select first route if testing?)
-        // if (!routeId && Object.keys(availableRoutes).length > 0) {
-        //     console.log("Auto-selecting first route for testing...");
-        //     loadARWithId(Object.keys(availableRoutes)[0]);
-        // }
     }
 }
 
