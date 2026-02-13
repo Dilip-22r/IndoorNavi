@@ -272,8 +272,11 @@ function setupEvents() {
     const nextBtn = document.getElementById('nextBtn') || document.getElementById('nextArBtn');
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
+             // Simulate moving 5m (one full segment)
              currentStepIndex++;
+             userDistanceOnPath = 0; // Reset pedometer for new segment
              renderCurrentSegment();
+             speak("Moved to next point.");
         });
     }
 
@@ -315,6 +318,16 @@ function setupEvents() {
             isMapExpanded = false;
             mapContainer.classList.remove('expanded');
             e.stopPropagation();
+        });
+    }
+
+    // Back Button (New)
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+             // Go back to Navigation View or Index
+             // If we came from navigation.html, let's go there.
+             window.location.href = 'navigation.html';
         });
     }
 }

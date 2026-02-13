@@ -159,6 +159,10 @@
         <div class="reticle-lines"></div>
     </div>
 
+    <button id="backBtn"
+        style="position: fixed; top: 10px; left: 10px; z-index: 2000; background: rgba(0,0,0,0.6); color: white; border: 1px solid white; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">⬅
+        Back</button>
+
     <div class="ar-instruction"
         style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; color: white; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; z-index: 2000; width: 80%; max-width: 400px; display: flex; flex-direction: column; align-items: center;">
         <p id="arText" class="ar-text" style="font-size: 1.2rem; font-weight: bold; margin: 0; width: 100%;">
@@ -168,14 +172,15 @@
 
     <!-- Duplicate controls removed -->
 
-    <!-- Controls Container -->
-    <div style="pointer-events: auto; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+    <!-- Controls Container (Fixed at Bottom) -->
+    <div
+        style="pointer-events: auto; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; align-items: center; z-index: 1000;">
 
         <!-- Navigation Buttons -->
         <div style="display: flex; gap: 10px; justify-content: center;">
             <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡
                 Recenter</button>
-            <button id="nextArBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
+            <button id="nextBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
         </div>
 
         <!-- Height Adjustment -->
