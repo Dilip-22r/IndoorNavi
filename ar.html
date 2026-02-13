@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Navigation</title>
+    <!-- Use stable compatible versions -->
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: monospace;
+        }
+
+        .ar-overlay {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .ar-instruction {
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ffff;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            pointer-events: auto;
+            text-align: center;
+            border: 2px solid #00ffff;
+        }
+
+        .ar-text {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .ar-distance {
+            font-size: 0.9em;
+            color: #ffffff;
+            margin-top: 5px;
+        }
+
+        .ar-btn {
+            pointer-events: auto;
+            width: 200px;
+            margin: 0 auto;
+            display: block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #00ffff 0%, #00aaff 100%);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        /* Debug Console */
+        #debug-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ff00;
+            font-size: 10px;
+            overflow-y: scroll;
+            z-index: 9999;
+            pointer-events: none;
+            /* Let touches pass through */
+            padding: 5px;
+            display: none;
+            /* Hidden by default, can toggle if needed */
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Debug Console -->
+    <div id="debug-console"></div>
+
+    <a-scene embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth:1280; sourceHeight:720; displayWidth: 1280; displayHeight: 720;"
+        renderer="logarithmicDepthBuffer: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false">
+
+        <!-- Navigation Root Entity - World Space -->
+        <!-- Placed at Floor Level (y=-1.6) -->
+        <!-- Rotation will be set by Recenter button -->
+        <a-entity id="navigationRoot" position="0 -1.6 0">
+            <!-- Start Marker (Yellow Ring) -->
+            <a-ring rotation="-90 0 0" radius-inner="0.2" radius-outer="0.4" color="yellow"
+                material="emissive: yellow; emissiveIntensity: 1"
+                animation="property: scale; to: 1.2 1.2 1.2; dir: alternate; loop: true; dur: 1000"></a-ring>
+
+            <!-- Route paths will be added here via JS -->
+        </a-entity>
+
+        <a-entity camera look-controls position="0 0 0"></a-entity>
+    </a-scene>
+
+    <div class="ar-overlay">
+        <div class="ar-instruction">
+            <p id="arText" class="ar-text">Initializing AR...</p>
+            <p id="arDistance" class="ar-distance">Please wait...</p>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡ Recenter
+                Path</button>
+            <button id="nextArBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
+        </div>
+    </div>
+
+    <!-- Override console.log for mobile debugging -->
+    <script>
+        (function () {
+            var oldLog = console.log;
+            var oldWarn = console.warn;
+            var oldError = console.error;
+            var debugConsole = document.getElementById('debug-console');
+
+            // Show console if there's an error
+            function showConsole() {
+                debugConsole.style.display = 'block';
+            }
+
+            function logToScreen(message, color) {
+                var div = document.createElement('div');
+                div.style.color = color;
+                div.style.marginBottom = '2px';
+                div.style.borderBottom = '1px solid #333';
+                div.textContent = '> ' + message;
+                debugConsole.appendChild(div);
+                debugConsole.scrollTop = debugConsole.scrollHeight;
+            }
+
+            console.log = function (message) {
+                oldLog.apply(console, arguments);
+                logToScreen(Array.from(arguments).join(' '), '#00ff00');
+            };
+
+            console.warn = function (message) {
+                oldWarn.apply(console, arguments);
+                showConsole();
+                logToScreen(Array.from(arguments).join(' '), 'orange');
+            };
+
+            console.error = function (message) {
+                oldError.apply(console, arguments);
+                showConsole();
+                logToScreen(Array.from(arguments).join(' '), 'red');
+            };
+
+            window.onerror = function (msg, url, lineNo, columnNo, error) {
+                showConsole();
+                logToScreen('Global Error: ' + msg + ' (' + lineNo + ')', 'red');
+                return false;
+            };
+        })();
+    </script>
+
+    <script src="js/routes.js"></script>
+    <script src="js/ar.js"></script>
+</body>
+
+</html>

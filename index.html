@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indoor AR Navigation</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Indoor AR Navigation</h1>
+        <p class="subtitle">Block-C, Floor 2</p>
+
+        <div class="form-group">
+            <label for="start">Start Room:</label>
+            <select id="start" class="select-box">
+                <option value="C201">C-201 (Fixed Start)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="destination">Destination:</label>
+            <select id="destination" class="select-box">
+                <option value="">-- Select Destination --</option>
+                <option value="C203">C-203</option>
+                <option value="C205">C-205</option>
+                <option value="C214">C-214</option>
+            </select>
+        </div>
+
+        <button id="startBtn" class="btn">Start Navigation</button>
+        <p id="error" class="error"></p>
+    </div>
+
+    <script src="js/routes.js"></script>
+    <script>
+        document.getElementById('startBtn').addEventListener('click', function () {
+            const start = document.getElementById('start').value;
+            const destination = document.getElementById('destination').value;
+            const errorEl = document.getElementById('error');
+
+            if (!destination) {
+                errorEl.textContent = 'Please select a destination';
+                return;
+            }
+
+            const routeKey = start + '_to_' + destination;
+            const route = navigationData.routes[routeKey];
+
+            if (!route) {
+                errorEl.textContent = 'Route not available for this destination';
+                return;
+            }
+
+            localStorage.setItem('currentRoute', JSON.stringify(route));
+            localStorage.setItem('routeKey', routeKey);
+            localStorage.setItem('step', 0);
+            localStorage.setItem('destination', destination);
+            window.location.href = 'navigation.html';
+        });
+    </script>
+</body>
+
+</html>

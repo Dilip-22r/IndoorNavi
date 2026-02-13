@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation View</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Navigation</h1>
+
+        <div class="map-container">
+            <img src="assets/map.png" alt="Floor Map" class="floor-map">
+            <div id="routeOverlay" class="route-overlay"></div>
+        </div>
+
+        <div class="instruction-box">
+            <h2>Current Step:</h2>
+            <p id="stepText" class="step-text"></p>
+            <p id="stepCount" class="step-count"></p>
+        </div>
+
+        <div class="button-group">
+            <button id="nextBtn" class="btn">Next Step</button>
+            <button id="arBtn" class="btn btn-secondary">Open AR View</button>
+        </div>
+    </div>
+
+    <script src="js/navigation.js"></script>
+</body>
+
+</html>
