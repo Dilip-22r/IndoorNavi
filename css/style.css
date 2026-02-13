@@ -164,6 +164,68 @@ label {
     pointer-events: auto;
 }
 
+/* Sci-Fi Reticle */
+.reticle {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    width: 60px;
+    height: 60px;
+    z-index: 10;
+    opacity: 0.7;
+}
+
+.reticle-circle {
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(0, 255, 255, 0.5);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    animation: reticlePulse 2s infinite;
+}
+
+@keyframes reticlePulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+}
+
+.reticle-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: cyan;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.reticle-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+}
+
 .ar-text {
     font-size: 1.1em;
     text-align: center;

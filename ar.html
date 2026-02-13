@@ -65,30 +65,78 @@
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
 
-        /* Debug Console */
-        #debug-console {
+        /* Mini-Map */
+        .mini-map-container {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
+            bottom: 20px;
+            left: 20px;
+            width: 150px;
             height: 150px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #00ff00;
-            font-size: 10px;
-            overflow-y: scroll;
-            z-index: 9999;
-            pointer-events: none;
-            /* Let touches pass through */
-            padding: 5px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid cyan;
+            border-radius: 10px;
+            z-index: 1000;
+            overflow: hidden;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+        }
+
+        .mini-map-container.expanded {
+            width: 90vw;
+            height: 80vh;
+            top: 10vh;
+            left: 5vw;
+            bottom: auto;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+            z-index: 2000;
+            /* Ensure it's on TOP of everything */
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        #miniMap {
+            width: 100%;
+            height: 100%;
+        }
+
+        #minimizeBtn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff3333;
+            color: white;
+            border: 2px solid white;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
             display: none;
-            /* Hidden by default, can toggle if needed */
+            /* Hidden in mini mode */
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 2001;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .mini-map-container.expanded #minimizeBtn {
+            display: block;
+        }
+
+        /* Hidden Console */
+        #debug-console {
+            display: none !important;
         }
     </style>
 </head>
 
 <body>
-    <!-- Debug Console -->
-    <div id="debug-console"></div>
+    <!-- Mini-Map Container -->
+    <div id="mini-map-container" class="mini-map-container">
+        <button id="minimizeBtn">Min -</button>
+        <canvas id="miniMap" width="150" height="150"></canvas>
+    </div>
+
+    <!-- Hidden Debug Console (Optional) -->
+    <div id="debug-console" style="display: none;"></div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;"
         renderer="logarithmicDepthBuffer: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false">
@@ -103,15 +151,38 @@
         <a-entity camera look-controls position="0 0 0"></a-entity>
     </a-scene>
 
+    <!-- Sci-Fi Reticle (Targeting System) -->
+    <div class="reticle">
+        <div class="reticle-circle"></div>
+        <div class="reticle-dot"></div>
+        <div class="reticle-lines"></div>
+    </div>
+
     <div class="ar-overlay">
         <div class="ar-instruction">
             <p id="arText" class="ar-text">Initializing AR...</p>
             <p id="arDistance" class="ar-distance">Please wait...</p>
         </div>
-        <div style="display: flex; gap: 10px; justify-content: center;">
-            <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡ Recenter
-                Path</button>
-            <button id="nextArBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
+
+        <!-- Controls Container -->
+        <div style="pointer-events: auto; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+
+            <!-- Navigation Buttons -->
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡
+                    Recenter</button>
+                <button id="nextArBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
+            </div>
+
+            <!-- Height Adjustment -->
+            <div
+                style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 10px;">
+                <span style="color: cyan; font-size: 12px;">Height:</span>
+                <button id="btnUp" class="ar-btn"
+                    style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬆️</button>
+                <button id="btnDown" class="ar-btn"
+                    style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬇️</button>
+            </div>
         </div>
     </div>
 
