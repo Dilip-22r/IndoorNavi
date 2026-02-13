@@ -58,7 +58,13 @@ document.getElementById('nextBtn').addEventListener('click', function() {
 });
 
 document.getElementById('arBtn').addEventListener('click', function() {
-    window.location.href = 'ar.html';
+    const routeKey = localStorage.getItem('routeKey');
+    if (routeKey) {
+        window.location.href = 'ar.html?route=' + routeKey;
+    } else {
+        alert("No route selected!");
+        window.location.href = 'index.html';
+    }
 });
 
 loadRoute();
