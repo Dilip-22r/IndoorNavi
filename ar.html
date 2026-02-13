@@ -159,43 +159,35 @@
         <div class="reticle-lines"></div>
     </div>
 
-    <div class="ar-overlay">
-        <div class="controls">
-            <button id="recenterBtn" class="btn">Recenter Path</button>
-            <!-- <button id="nextBtn" class="btn">Next Step</button> -->
-            <button id="relocalizeBtn" class="btn"
-                style="background: linear-gradient(135deg, #FF9900 0%, #FFCC00 100%); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">📷</button>
+    <div class="ar-instruction"
+        style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; color: white; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; z-index: 2000; width: 80%; max-width: 400px; display: flex; flex-direction: column; align-items: center;">
+        <p id="arText" class="ar-text" style="font-size: 1.2rem; font-weight: bold; margin: 0; width: 100%;">
+            Initializing AR...</p>
+        <p id="arDistance" class="ar-distance" style="font-size: 0.9rem; margin: 5px 0 0;">Please wait...</p>
+    </div>
+
+    <!-- Duplicate controls removed -->
+
+    <!-- Controls Container -->
+    <div style="pointer-events: auto; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+
+        <!-- Navigation Buttons -->
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡
+                Recenter</button>
+            <button id="nextArBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
         </div>
 
-        <!-- QR Reader Overlay -->
-        <div id="ar-qr-overlay"
-            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center;">
-            <p style="color: white; font-size: 1.2em; margin-bottom: 20px;">Scan Room QR to Fix Position</p>
-            <div id="ar-qr-reader" style="width: 300px;"></div>
-            <button id="close-ar-qr"
-                style="margin-top: 20px; padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 5px;">Cancel</button>
+        <!-- Height Adjustment -->
+        <div
+            style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 10px;">
+            <span style="color: cyan; font-size: 12px;">Height:</span>
+            <button id="btnUp" class="ar-btn"
+                style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬆️</button>
+            <button id="btnDown" class="ar-btn"
+                style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬇️</button>
         </div>
-
-        <!-- Controls Container -->
-        <div style="pointer-events: auto; display: flex; flex-direction: column; gap: 10px; align-items: center;">
-
-            <!-- Navigation Buttons -->
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡
-                    Recenter</button>
-                <button id="nextArBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
-            </div>
-
-            <!-- Height Adjustment -->
-            <div
-                style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 10px;">
-                <span style="color: cyan; font-size: 12px;">Height:</span>
-                <button id="btnUp" class="ar-btn"
-                    style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬆️</button>
-                <button id="btnDown" class="ar-btn"
-                    style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬇️</button>
-            </div>
-        </div>
+    </div>
     </div>
 
     <!-- Override console.log for mobile debugging -->

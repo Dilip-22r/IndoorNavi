@@ -10,6 +10,9 @@ This system provides indoor navigation for Block-C, Floor 2 using:
 - **Glowing neon path visualization** using cylinder segments
 - **Directional arrows** every 5 meters
 - **Turn indicators** at junctions
+- **Voice Guidance** (Text-to-Speech)
+- **Step Pedometer** for simulated forward movement
+- **QR Code Relocalization** to correct drift
 - **Destination markers** with floating labels
 
 ## 🗺️ Available Routes
@@ -23,17 +26,17 @@ Starting from **C-201** (all routes begin here):
 
 ```
 indoor-ar-navigation/
-├── index.html          # Route selection
+├── index.html          # Route selection (QR + Manual)
 ├── navigation.html     # 2D map preview
-├── ar.html            # AR camera view
+├── ar.html             # AR camera view (A-Frame + AR.js)
 ├── assets/
-│   └── map.png        # Floor map
+│   └── map.png         # Floor map
 ├── js/
-│   ├── routes.js      # 3D coordinate definitions
-│   ├── navigation.js  # Navigation logic
-│   └── ar.js          # AR rendering engine
+│   ├── mapService.js   # Graph data, BFS, & Coordinate logic
+│   ├── navigation.js   # 2D Navigation logic
+│   └── ar.js           # AR rendering, Pedometer, Voice, Reloc
 ├── css/
-│   └── style.css      # Styling
+│   └── style.css       # Styling
 └── README.md
 ```
 
@@ -137,9 +140,8 @@ C201 → C214:
 
 - Add more rooms (C-202, C-204, etc.)
 - Multiple floor support
-- Voice navigation
 - Dynamic obstacle detection
-- QR code starting points
+- True SLAM (requires WebXR Device API)
 
 ## 📝 License
 

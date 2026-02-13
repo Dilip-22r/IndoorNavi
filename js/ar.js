@@ -154,9 +154,8 @@ function updateInstructions() {
     
     // Update Distance/Step info
     if (arDistance) {
-        // Calculate remaining distance? Or just step count
-        const total = navigationPathPoints.length - 1;
-        arDistance.textContent = `Step ${currentStepIndex + 1} of ${total}`;
+        const total = navigationPathPoints.length;
+        arDistance.textContent = `Step ${currentStepIndex + 1}/${total}`; // Compact
     }
 
     // Voice Announcement (Only if step changed)
@@ -360,8 +359,7 @@ function drawMiniMap() {
     // Get User Position & Rotation
     const root = document.getElementById('navigationRoot');
     const camera = document.querySelector('[camera]');
-    
-    // Use Virtual Position if available (Pedometer), else Camera (Static 0,0,0)
+    // Use Virtual Position if available
     const camPos = window.virtualUserPos || (camera ? camera.getAttribute('position') : {x:0, y:0, z:0});
     const camRot = camera ? camera.getAttribute('rotation') : {x:0, y:0, z:0};
 
@@ -572,7 +570,7 @@ function onStepDetected() {
         renderCurrentSegment(); 
         
         // Voice
-        speak("Step complete. Advancing to next segment.");
+        speak("Step complete.");
     } else {
         // Just update position visuals (Mini-Map & World)
         updateUserPosition(start, end, userDistanceOnPath / segmentLen);
@@ -580,50 +578,17 @@ function onStepDetected() {
 }
 
 function updateUserPosition(start, end, progress) {
-    // 1. Calculate Virtual Position (Lerp)
     const currentX = start.x + (end.x - start.x) * progress;
     const currentZ = start.z + (end.z - start.z) * progress;
     
-    // 2. Move Navigation Root BACKWARDS to simulate User moving FORWARD
-    // If User is at (0,0,-5), Root should be at (0,0,5) relative to Camera(0,0,0)?
-    // AR.js Camera is fixed at 0,0,0.
-    // If we want the user to "feel" like they moved 5m North...
-    // We should move the World 5m South.
-    
-    // BUT! Our coordinate system is "Start Point = 0,0,0".
-    // So objects are drawn at (x, z).
-    // If User is at (currentX, currentZ), 
-    // We need to shift everything by (-currentX, -currentZ).
-    
     const root = document.getElementById('navigationRoot');
     if (root) {
-        // Keep heightOffset from "Up/Down" buttons
         const baseHeight = -1.6 + heightOffset; 
-        
-        // Inverse translation
         root.setAttribute('position', `${-currentX} ${baseHeight} ${-currentZ}`);
     }
     
-    // 3. Update MiniMap
-    // MiniMap needs "User Position relative to Map Start".
-    // We need to expose `camPos` to `drawMiniMap`.
-    // Currently `drawMiniMap` reads `camera.getAttribute('position')`.
-    // But Camera is static (0,0,0).
-    // We need to override the "User Position" in `drawMiniMap`.
-    
-    // Let's store it in a global
     window.virtualUserPos = { x: currentX, y: 0, z: currentZ };
 }
-
-// Override drawMiniMap to use virtualUserPos
-// ... (We need to modify drawMiniMap slightly to check `window.virtualUserPos` instead of camera pos)
-// But I can't edit `drawMiniMap` easily here since I'm appending.
-// I'll create a new function `getVirtualCameraPosition` and patch `drawMiniMap` later?
-// Or just reuse the `camPos` variable in `drawMiniMap` if I can find it.
-// I'll update `drawMiniMap` in a separate Edit.
-
-// Init
-setupPedometer();
 
 // --- QR RELOCALIZATION (Dynamic Path Update) ---
 let arQrScanner = null;
@@ -679,33 +644,26 @@ function stopArQrScanner() {
 }
 
 async function handleRelocalization(newLocationCode) {
-    // 1. Stop Scanner
     stopArQrScanner();
     document.getElementById('ar-qr-overlay').style.display = 'none';
     
-    // 2. Validate Location
-    // We need MapService
     if (typeof MapService === 'undefined') {
         alert("Map Service not loaded.");
         return;
     }
     
-    // Ensure Map is Loaded
     if (!MapService.graph) {
         await MapService.loadMap();
     }
     
-    // Normalize Input (C201 -> c201)
     const newStart = newLocationCode.toLowerCase().replace('-', '');
     
-    // Check if node exists
     if (!MapService.graph[newStart]) {
         alert(`Invalid Location Code: ${newLocationCode}`);
         speak("Invalid location code.");
         return;
     }
     
-    // 3. Get Current Destination
     const dest = localStorage.getItem('destination');
     if (!dest) {
         alert("No destination set.");
@@ -713,7 +671,6 @@ async function handleRelocalization(newLocationCode) {
     }
     const destKey = dest.toLowerCase();
     
-    // 4. Recalculate Path
     const path = MapService.bfs(newStart, destKey);
     if (!path) {
         alert("Cannot find path from here.");
@@ -721,11 +678,9 @@ async function handleRelocalization(newLocationCode) {
         return;
     }
     
-    // 5. Generate New AR Data
     const points = MapService.generatePathCoordinates(path);
     const instructions = MapService.generateDirections(path);
     
-    // 6. Update State
     route = {
         points: points,
         instructions: instructions,
@@ -735,34 +690,31 @@ async function handleRelocalization(newLocationCode) {
     currentStepIndex = 0;
     lastSpokenIndex = -1;
     
-    // Reset Pedometer Virtual Pos
     window.virtualUserPos = { x: 0, y: 0, z: 0 };
     lastStepTime = Date.now();
     userDistanceOnPath = 0;
     
-    // 7. Update Distance Display (Legacy Check) & Storage
     localStorage.setItem('currentRoute', JSON.stringify(route));
     
-    // 8. Visual Feedback
-    speak(`Position updated to ${newLocationCode}. Recalculating route.`);
+    speak(`Recalculating from ${newLocationCode}.`);
     renderCurrentSegment();
     
     const arText = document.getElementById('arText');
-    if (arText) arText.textContent = `Relocalized to ${newLocationCode.toUpperCase()}`;
+    if (arText) arText.textContent = `Moved to ${newLocationCode.toUpperCase()}`;
 }
 
 // Init
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setupEvents();
-        setupRelocalization(); // Added
+        setupRelocalization(); 
         setTimeout(loadAR, 1000);
         requestAnimationFrame(drawMiniMap);
         setupPedometer();
     });
 } else {
     setupEvents();
-    setupRelocalization(); // Added
+    setupRelocalization(); 
     setTimeout(loadAR, 1000);
     requestAnimationFrame(drawMiniMap);
     setupPedometer();
