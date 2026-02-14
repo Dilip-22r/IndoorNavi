@@ -285,14 +285,26 @@ function renderNearbyPOIs(userPos) {
 
 
 let lastSpokenIndex = -1;
+let isVoiceEnabled = true;
 
 function speak(text) {
+    if (!isVoiceEnabled) return;
     if ('speechSynthesis' in window) {
         // Do not cancel previous speech to allow queuing
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
         window.speechSynthesis.speak(utterance);
     }
+}
+
+function toggleVoice() {
+    isVoiceEnabled = !isVoiceEnabled;
+    const btn = document.getElementById('voiceBtn');
+    if (btn) {
+        btn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
+        btn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
+    }
+    speak(isVoiceEnabled ? "Voice enabled" : "Voice disabled");
 }
 
 function updateInstructions() {
@@ -529,6 +541,28 @@ function setupEvents() {
             applyTheme(e.target.value);
         });
     }
+
+    // Voice Toggle (Dynamic)
+    let voiceBtn = document.getElementById('voiceBtn');
+    if (!voiceBtn) {
+        voiceBtn = document.createElement('button');
+        voiceBtn.id = 'voiceBtn';
+        voiceBtn.textContent = "🔊 On";
+        voiceBtn.style.cssText = `
+            position: fixed; 
+            top: 20px; 
+            right: 80px; 
+            z-index: 1001; 
+            padding: 8px 12px; 
+            background: rgba(0, 0, 0, 0.6); 
+            color: white; 
+            border: 1px solid white; 
+            border-radius: 5px; 
+            cursor: pointer;
+        `;
+        document.body.appendChild(voiceBtn);
+    }
+    voiceBtn.addEventListener('click', toggleVoice);
 }
 
 // --- MINI-MAP LOGIC (EXPANDABLE) ---
