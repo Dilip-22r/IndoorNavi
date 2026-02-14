@@ -50,7 +50,11 @@ function updateDisplay(destination) {
 }
 
 // Text-to-Speech Helper
+let isVoiceEnabled = true;
+
 function speak(text) {
+    if (!isVoiceEnabled) return;
+
     if ('speechSynthesis' in window) {
         // Cancel previous speech to avoid queue buildup
         window.speechSynthesis.cancel();
@@ -60,6 +64,42 @@ function speak(text) {
         utterance.pitch = 1.0;
         utterance.lang = 'en-US';
         window.speechSynthesis.speak(utterance);
+    }
+}
+
+function toggleVoice() {
+    isVoiceEnabled = !isVoiceEnabled;
+    const btn = document.getElementById('voiceBtn');
+    if (btn) {
+        btn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
+        btn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
+    }
+    // Only speak feedback if enabled, or if disabling (to confirm)
+    if (isVoiceEnabled) speak("Voice enabled");
+}
+
+function setupVoiceButton() {
+    let voiceBtn = document.getElementById('voiceBtn');
+    if (!voiceBtn) {
+        voiceBtn = document.createElement('button');
+        voiceBtn.id = 'voiceBtn';
+        voiceBtn.textContent = "🔊 On";
+        voiceBtn.className = "btn"; // Use existing btn class for basic style
+        voiceBtn.style.cssText = `
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            z-index: 1001; 
+            padding: 8px 12px; 
+            background: #2196F3; 
+            color: white; 
+            border: 2px solid white; 
+            border-radius: 5px; 
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        `;
+        document.body.appendChild(voiceBtn);
+        voiceBtn.addEventListener('click', toggleVoice);
     }
 }
 
@@ -86,4 +126,8 @@ document.getElementById('arBtn').addEventListener('click', function() {
     }
 });
 
+    }
+});
+
+setupVoiceButton();
 loadRoute();
