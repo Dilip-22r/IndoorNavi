@@ -861,22 +861,28 @@ function renderNearbyPOIs() {
             const label = document.createElement('a-text');
             label.setAttribute('value', nodeName.toUpperCase().replace('C', 'ROOM '));
             label.setAttribute('class', 'poi-label');
-            label.setAttribute('position', `${localX} 2 ${localZ}`); // 2m high
+            label.setAttribute('position', `${localX} 2.5 ${localZ}`); // Raised to 2.5m
             label.setAttribute('align', 'center');
             label.setAttribute('color', t.markerColor); // Use theme color
-            label.setAttribute('scale', '1.5 1.5 1.5');
+            label.setAttribute('scale', '0.7 0.7 0.7'); // Reduced scale
             // Look at camera
             label.setAttribute('look-at', '[camera]');
             
             // Add a small dot
             const dot = document.createElement('a-sphere');
             dot.setAttribute('class', 'poi-label');
-            dot.setAttribute('position', `${localX} 1.5 ${localZ}`);
-            dot.setAttribute('radius', '0.1');
+            dot.setAttribute('position', `${localX} 1.2 ${localZ}`); // Lowered Dot to 1.2m
+            dot.setAttribute('radius', '0.08'); // Smaller dot
             dot.setAttribute('color', t.markerColor);
+            
+            // Optional: Connector Line
+            const line = document.createElement('a-entity');
+            line.setAttribute('line', `start: ${localX} 1.2 ${localZ}; end: ${localX} 2.4 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
+            line.setAttribute('class', 'poi-label');
             
             root.appendChild(label);
             root.appendChild(dot);
+            root.appendChild(line);
         }
     });
 }
