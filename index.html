@@ -12,93 +12,57 @@
 
 <body>
     <div class="container">
-        <h1>Indoor Navigation</h1>
-        <p class="subtitle" id="subtitle">Select Block</p>
+        <h1>Indoor AR Navigation</h1>
+        <p class="subtitle">Block-C, Floor 2</p>
 
-        <!-- Block Selection -->
-        <div id="blockSelection" style="text-align: center; margin-bottom: 20px;">
-            <button class="btn" onclick="selectBlock('C')" style="background-color: #2e7d32; margin: 5px;">Block
-                C</button>
-            <button class="btn" onclick="selectBlock('E')" style="background-color: #1976d2; margin: 5px;">Block
-                E</button>
+        <!-- QR Scan Section -->
+        <div class="form-group" style="text-align: center;">
+            <button id="scanQrBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">📷 Scan QR
+                Code</button>
+            <p id="scannedRoom" style="font-weight: bold; min-height: 20px;"></p>
+            <div id="qr-reader" style="width: 100%; display: none; margin: 10px auto;"></div>
         </div>
 
-        <div id="navControls" style="display: none;">
-            <p id="activeBlockLabel" style="text-align: center; color: #888; margin-bottom: 10px;"></p>
-            <button onclick="resetBlock()"
-                style="background:none; border:none; color: #666; cursor:pointer; width:100%">← Change Block</button>
-
-            <!-- QR Scan Section (Only for C for now, or unified if generic) -->
-            <div class="form-group" style="text-align: center;">
-                <button id="scanQrBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">📷 Scan QR
-                    Code</button>
-                <p id="scannedRoom" style="font-weight: bold; min-height: 20px;"></p>
-                <div id="qr-reader" style="width: 100%; display: none; margin: 10px auto;"></div>
-            </div>
-
-            <div class="form-group">
-                <label for="start">Start Location:</label>
-                <select id="start" class="select-box">
-                    <option value="">-- Load Map First --</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="destination">Destination:</label>
-                <select id="destination" class="select-box">
-                    <option value="">-- Select Destination --</option>
-                </select>
-            </div>
-
-            <button id="startBtn" class="btn">Start Navigation</button>
-            <p id="error" class="error"></p>
+        <div class="form-group">
+            <label for="start">Start Location:</label>
+            <select id="start" class="select-box">
+                <option value="">-- Load Map First --</option>
+            </select>
         </div>
+
+        <div class="form-group">
+            <label for="destination">Destination:</label>
+            <select id="destination" class="select-box">
+                <option value="">-- Select Destination --</option>
+            </select>
+        </div>
+
+        <button id="startBtn" class="btn">Start Navigation</button>
+        <p id="error" class="error"></p>
     </div>
 
     <script src="js/mapService.js"></script>
-    <script src="js/mapServiceE.js"></script>
     <script>
-        let currentBlock = null;
-
-        // Block Selection
-        async function selectBlock(block) {
-            currentBlock = block;
-            document.getElementById('blockSelection').style.display = 'none';
-            document.getElementById('navControls').style.display = 'block';
-            document.getElementById('subtitle').textContent = `Block ${block}`;
-            document.getElementById('activeBlockLabel').textContent = `Navigating Block ${block}`;
-
-            if (block === 'C') {
-                await MapService.loadMap();
-                populateDropdowns(MapService.graph, 'C');
-            } else if (block === 'E') {
-                await MapServiceE.loadMap();
-                populateDropdowns(MapServiceE.mapData.rooms, 'E');
-            }
+        // Initialize Map
+        async function init() {
+            await MapService.loadMap();
+            populateDropdowns();
         }
 
-        function resetBlock() {
-            document.getElementById('blockSelection').style.display = 'block';
-            document.getElementById('navControls').style.display = 'none';
-            document.getElementById('subtitle').textContent = "Select Block";
-            currentBlock = null;
-        }
-
-        function populateDropdowns(data, block) {
+        function populateDropdowns() {
             const startSelect = document.getElementById('start');
             const destSelect = document.getElementById('destination');
-            let rooms = [];
 
-            if (block === 'C') {
-                // Block C Data Structure (Graph Nodes)
-                rooms = Object.keys(data).filter(key => {
-                    const type = data[key].type;
+            if (!MapService.graph) return;
+
+            // extracting all rooms and staircases, sorting them
+            const rooms = Object.keys(MapService.graph)
+                .filter(key => {
+                    const type = MapService.graph[key].type;
                     return type === 'room' || type === 'staircase';
-                }).map(key => key.toUpperCase()).sort();
-            } else {
-                // Block E Data Structure (Array of Objects)
-                rooms = data.map(r => r.id).sort();
-            }
+                })
+                .map(key => key.toUpperCase())
+                .sort();
 
             // Clear existing options
             startSelect.innerHTML = '<option value="">-- Select Start --</option>';
@@ -115,6 +79,11 @@
                 opt2.textContent = room;
                 destSelect.appendChild(opt2);
             });
+
+            // Set Default Start as C201 if exists
+            if (rooms.includes('C201')) {
+                startSelect.value = 'C201';
+            }
         }
 
         // --- QR Code Logic ---
@@ -137,37 +106,64 @@
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
                 html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                    // Success Callback
                     console.log('QR Scanned:', decodedText);
+
+                    // Check if scanned text matches a room in dropdown
+                    // Dropdown values are UPPERCASE (C201, C203)
+                    // We assume QR returns "C201" or "C-201" or similar.
+                    // Normalize: Remove spaces, hyphens? User repo uses "C201".
+
+                    let match = null;
                     const options = Array.from(startSelect.options).map(o => o.value);
-                    let match = options.find(o => o === decodedText || o === decodedText.toUpperCase() || o === decodedText.replace('-', '').toUpperCase());
+
+                    // Direct Match
+                    if (options.includes(decodedText)) match = decodedText;
+
+                    // Try Uppercase
+                    if (!match && options.includes(decodedText.toUpperCase())) match = decodedText.toUpperCase();
+
+                    // Try removing hyphens (C-201 -> C201)
+                    if (!match) {
+                        const clean = decodedText.replace('-', '').toUpperCase();
+                        if (options.includes(clean)) match = clean;
+                    }
 
                     if (match) {
                         startSelect.value = match;
                         scannedRoomEl.textContent = `✓ Detected: ${match}`;
                         scannedRoomEl.style.color = 'green';
+
+                        // Stop Scanning automatically
                         html5QrCode.stop().then(() => {
                             qrReader.style.display = 'none';
                             btn.textContent = '📷 Scan QR Code';
                             btn.style.background = ''; // Reset
                         });
                     } else {
-                        scannedRoomEl.textContent = `⚠ Unknown QR for Block ${currentBlock}: ${decodedText}`;
+                        scannedRoomEl.textContent = `⚠ Unknown QR: ${decodedText}`;
                         scannedRoomEl.style.color = 'red';
                     }
                 }, (errorMessage) => {
-                    // Ignore scan errors
+                    // Ignore scan errors (scanning in progress)
                 }).catch(err => {
                     console.error("Camera Error", err);
                     alert("Camera not found or permission denied.");
+                    qrReader.style.display = 'none';
+                    btn.textContent = '📷 Scan QR Code';
+                    btn.style.background = '';
                 });
 
             } else {
+                // Stop scanning
                 if (html5QrCode) {
                     html5QrCode.stop().then(() => {
                         qrReader.style.display = 'none';
                         btn.textContent = '📷 Scan QR Code';
                         btn.style.background = '';
                     });
+                } else {
+                    qrReader.style.display = 'none';
                 }
             }
         });
@@ -183,52 +179,42 @@
                 return;
             }
 
-            let routeObject = {};
+            // Convert keys to Lowercase for MapService (c201, c203)
+            const startKey = startValue.toLowerCase();
+            const destKey = destValue.toLowerCase();
 
-            if (currentBlock === 'C') {
-                const startKey = startValue.toLowerCase();
-                const destKey = destValue.toLowerCase();
-                // 1. Calculate Path (BFS)
-                const path = MapService.bfs(startKey, destKey);
-                if (!path) {
-                    errorEl.textContent = 'No path found.';
-                    return;
-                }
-                const points = MapService.generatePathCoordinates(path);
-                const instructions = MapService.generateDirections(path);
-
-                routeObject = {
-                    path: path,
-                    points: points,
-                    instructions: instructions,
-                    distance: path.length * 5,
-                    startNode: startKey,
-                    block: 'C'
-                };
-            } else {
-                // Block E Logic
-                // Now returns { steps, points }
-                const result = MapServiceE.navigate(startValue, destValue);
-
-                routeObject = {
-                    path: [startValue, destValue], // Dummy path structure
-                    points: result.points,
-                    instructions: result.steps,
-                    distance: 0, // Not calc
-                    startNode: startValue,
-                    block: 'E'
-                };
+            // 1. Calculate Path (BFS)
+            const path = MapService.bfs(startKey, destKey);
+            if (!path) {
+                errorEl.textContent = 'No path found between these locations.';
+                return;
             }
 
-            localStorage.setItem('currentRoute', JSON.stringify(routeObject));
-            localStorage.setItem('destination', destValue);
-            localStorage.setItem('step', 0);
+            // 2. Generate 3D Coordinates (for AR)
+            const points = MapService.generatePathCoordinates(path);
 
-            // Redirect
+            // 3. Generate Text Instructions (for 2D Nav)
+            const instructions = MapService.generateDirections(path);
+
+            // 4. Save to LocalStorage
+            const routeObject = {
+                path: path,
+                points: points,
+                instructions: instructions,
+                distance: path.length * 5, // Approx distance
+                startNode: startKey // Needed for POI relative positioning
+            };
+
+            localStorage.setItem('currentRoute', JSON.stringify(routeObject));
+            localStorage.setItem('destination', destValue); // Keep display value
+            localStorage.setItem('step', 0);
+            localStorage.setItem('routeKey', "custom"); // flag for AR
+
             window.location.href = 'navigation.html';
         });
 
-        // init removed, waiting for user selection
+        // Run Init
+        init();
     </script>
 </body>
 

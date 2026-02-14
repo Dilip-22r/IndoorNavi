@@ -804,96 +804,15 @@ function updateUserPosition(start, end, progress) {
 
 // --- POI LOGIC ---
 function renderNearbyPOIs() {
+    // User requested to remove 3D Room Numbers.
+    // Clearing this function to disable POI rendering.
     if (typeof MapService === 'undefined' || !MapService.nodeCoordinates) return;
     const root = document.getElementById('navigationRoot');
     if (!root) return;
     
-    // Clear existing
+    // Clear existing if any left
     const existing = document.querySelectorAll('.poi-label');
     existing.forEach(el => el.parentNode.removeChild(el));
-
-    // Get Start Node Coordinate
-    let startNodeCoord = { x: 0, z: 0 };
-    if (route && route.startNode) {
-        startNodeCoord = MapService.getNodeCoordinate(route.startNode);
-    } else if (route && route.path && route.path.length > 0) {
-        startNodeCoord = MapService.getNodeCoordinate(route.path[0]);
-    } else {
-        // Fallback: If no startNode saved, we can't accurately place off-path POIs relative to us.
-        // We'll skip Rendering external POIs for now to avoid floating garbage.
-        return; 
-    }
-
-    const t = themes[currentTheme];
-    const PROXIMITY_RADIUS = 12; // Meters
-
-    // Current User Position in AR Space (Local)
-    // We approximate this using the current step's point + userDistanceOnPath
-    // Or just use the camera's world position (which is 0,0,0 usually + movement).
-    // Let's use the 'virtualUserPos' we track.
-    const userLocalX = window.virtualUserPos ? window.virtualUserPos.x : 0;
-    const userLocalZ = window.virtualUserPos ? window.virtualUserPos.z : 0;
-
-    Object.keys(MapService.nodeCoordinates).forEach(nodeName => {
-        // Filter: Rooms & Stairs only
-        if (nodeName.includes('corridor_')) return; 
-
-        const globalCoord = MapService.nodeCoordinates[nodeName];
-        
-        // Transform to Local AR Space
-        // Local = Global - StartGlobal
-        // Axis flip: Unity/AR -Z is Forward. Map Z is positive.
-        // Map (x, z) -> AR (x, -z) approx? 
-        // In `generatePathCoordinates`: 
-        // x: coord.x - start.x
-        // z: -(coord.z - start.z)
-        
-        const localX = globalCoord.x - startNodeCoord.x;
-        const localZ = -(globalCoord.z - startNodeCoord.z);
-
-        // Calculate Distance to User
-        const dx = localX - userLocalX;
-        const dz = localZ - userLocalZ;
-        const dist = Math.sqrt(dx*dx + dz*dz);
-
-        if (dist < PROXIMITY_RADIUS) {
-            // Render Label
-            // Shift Label to LEFT of the node relative to path direction?
-            // Simple X offset for now: -1.5m (Left side of corridor usually)
-            const labelX = localX - 1.5; 
-            
-            const label = document.createElement('a-text');
-            label.setAttribute('value', nodeName.toUpperCase().replace('C', 'ROOM '));
-            label.setAttribute('class', 'poi-label');
-            label.setAttribute('position', `${labelX} 2.5 ${localZ}`); // Shifted Left
-            label.setAttribute('align', 'center');
-            label.setAttribute('color', t.markerColor); // Use theme color
-            label.setAttribute('scale', '0.7 0.7 0.7'); // Reduced scale
-            // Look at camera
-            label.setAttribute('look-at', '[camera]');
-            
-            // Add a small dot (Floor)
-            const dot = document.createElement('a-sphere');
-            dot.setAttribute('class', 'poi-label');
-            dot.setAttribute('position', `${localX} 1.2 ${localZ}`); // Original Pos (Center of Room Entry)
-            dot.setAttribute('radius', '0.08'); 
-            dot.setAttribute('color', t.markerColor);
-            
-            // Connector Line (Diagonal from Label to Dot)
-            const line = document.createElement('a-entity');
-            line.setAttribute('line', `start: ${labelX} 2.4 ${localZ}; end: ${localX} 1.2 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
-            
-            // Note: The dot is at Entrance (Center). Label is Offset.
-            // Let's connect Label to Dot.
-            line.setAttribute('line', `start: ${labelX} 2.4 ${localZ}; end: ${localX} 1.2 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
-            // Actually, let's draw line from Label Bottom to Dot Center
-            line.setAttribute('line', `start: ${labelX} 2.2 ${localZ}; end: ${localX} 1.2 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
-
-            root.appendChild(label);
-            root.appendChild(dot);
-            root.appendChild(line);
-        }
-    });
 }
 
 let arQrScanner = null;
@@ -1059,67 +978,21 @@ function checkWrongWay() {
     if (diff > 180) diff = 360 - diff; // Shortest turn
 
     // 6. Trigger Feedback
-    const warningEl = document.getElementById('wrong-way-warning');
-
     if (diff > WRONG_WAY_THRESHOLD) {
-        // Show Warning
-        if (!warningEl) createWarningUI();
-        else warningEl.style.display = 'flex';
-
         // Haptic Feedback (Vibrate)
         const now = Date.now();
         if (now - lastVibrationTime > 1000) {
             console.warn("User going wrong way! Vibrate.");
             if (navigator.vibrate) {
-                // Feature detection
-                navigator.vibrate([200, 100, 200]); // Buzz-pause-buzz
+                navigator.vibrate([200, 100, 200]); 
             }
             lastVibrationTime = now;
         }
-    } else {
-        // Hide Warning
-        if (warningEl) warningEl.style.display = 'none';
     }
 }
 
 function normalizeAngle(a) {
     return (a % 360 + 360) % 360;
-}
-
-function createWarningUI() {
-    const div = document.createElement('div');
-    div.id = 'wrong-way-warning';
-    div.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(255, 0, 0, 0.4);
-        display: none; justify-content: center; align-items: center;
-        z-index: 9999; pointer-events: none;
-    `;
-    div.innerHTML = `
-        <div style="
-            background: rgba(255, 0, 0, 0.9); 
-            color: white; 
-            padding: 30px; 
-            font-size: 28px; 
-            font-weight: bold; 
-            border-radius: 20px; 
-            border: 4px solid white;
-            text-align: center;
-            box-shadow: 0 0 30px red;
-            animation: pulse 1s infinite;
-        ">
-            ⚠️ WRONG WAY<br>
-            <span style="font-size: 16px; font-weight: normal;">Turn Around!</span>
-        </div>
-        <style>
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-        </style>
-    `;
-    document.body.appendChild(div);
 }
 
 // Start Monitoring
