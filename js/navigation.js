@@ -17,63 +17,89 @@ function loadRoute() {
     updateDisplay(destination);
 }
 
+// function updateDisplay(destination) {
+//     const stepText = document.getElementById('stepText');
+//     const stepCount = document.getElementById('stepCount');
+//     const nextBtn = document.getElementById('nextBtn');
+//     const arBtn = document.getElementById('arBtn');
+
+//     // Determine length based on POINTS (AR) or INSTRUCTIONS (Text Only)
+//     const totalSteps = route.points && route.points.length > 0 
+//         ? route.points.length 
+//         : (route.instructions ? route.instructions.length : 0);
+    
+//     // If we are at the end
+//     if (step >= totalSteps) {
+//         stepText.textContent = `You have arrived at ${destination}!`;
+//         stepCount.textContent = `Total distance: ${route.distance}m`;
+//         nextBtn.disabled = true;
+//         nextBtn.textContent = 'Completed';
+//         nextBtn.style.background = '#ccc';
+//         if(arBtn) arBtn.style.display = 'none'; // Hide AR if done
+//         speak("You have arrived at your destination.");
+//     } else {
+//         let instruction = "";
+//         if (route.instructions && route.instructions[step]) {
+//             instruction = route.instructions[step];
+//         } else {
+//              instruction = `Proceed to next waypoint.`;
+//         }
+        
+//         stepText.textContent = instruction;
+//         stepCount.textContent = `Step ${step + 1} of ${totalSteps} | Distance: ${route.distance > 0 ? route.distance : 'N/A'}`;
+        
+//         speak(instruction);
+//     }
+// }
+
 function updateDisplay(destination) {
     const stepText = document.getElementById('stepText');
     const stepCount = document.getElementById('stepCount');
     const nextBtn = document.getElementById('nextBtn');
+    const arBtn = document.getElementById('arBtn');
 
-    const totalPoints = route.points.length;
+    // 1. Determine Total Count
+    // For AR (Block C): uses points length.
+    // For Text (Block E): uses instructions length.
+    let totalSteps = 0;
+    if (route.points && route.points.length > 0) {
+        totalSteps = route.points.length;
+        if(arBtn) arBtn.style.display = 'block';
+    } else if (route.instructions && route.instructions.length > 0) {
+        totalSteps = route.instructions.length;
+        if(arBtn) arBtn.style.display = 'none'; // No AR for Block E
+    }
+
+    // 2. Check Arrival
+    // If Step is beyond the last index (length usually)
+    // Actually, usually steps are comparable to length.
+    // If we have 3 instructions, step 0, 1, 2. Step 3 is done.
     
-    const stepTextEl = stepText; // Alias for clarity
-    
-    if (step >= totalPoints - 1) {
+    if (step >= totalSteps) {
         stepText.textContent = `You have arrived at ${destination}!`;
-        stepCount.textContent = `Total distance: ${route.distance}m`;
+        stepCount.textContent = `Destination Reached`;
         nextBtn.disabled = true;
         nextBtn.textContent = 'Completed';
+        nextBtn.style.backgroundColor = '#888';
         speak("You have arrived at your destination.");
     } else {
-        // Use Pre-calculated instructions from MapService
-        let instruction = "Proceed to next waypoint.";
-        if (route.instructions && route.instructions[step]) {
-            instruction = route.instructions[step];
-        } else {
-             instruction = `Move to next point.`;
-        }
-        
+        // Active Step
+        let instruction = route.instructions[step] || "Proceed to next point.";
         stepText.textContent = instruction;
-        stepCount.textContent = `Step ${step + 1} of ${totalPoints - 1} | Distance: ${route.distance}m`;
-        
-        // Speak instruction (Debounced)
+        stepCount.textContent = `Step ${step + 1} of ${totalSteps}`;
+        nextBtn.disabled = false;
+        nextBtn.textContent = 'Next Step';
         speak(instruction);
-    }
-}
-
-// Text-to-Speech Helper
-function speak(text) {
-    if ('speechSynthesis' in window) {
-        // Cancel previous speech to avoid queue buildup
-        window.speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.lang = 'en-US';
-        window.speechSynthesis.speak(utterance);
     }
 }
 
 document.getElementById('nextBtn').addEventListener('click', function() {
     const destination = localStorage.getItem('destination');
-    if (step < route.points.length - 2) {
-        step++;
-        localStorage.setItem('step', step);
-        updateDisplay(destination);
-    } else if (step === route.points.length - 2) {
-        step++;
-        localStorage.setItem('step', step);
-        updateDisplay(destination);
-    }
+    
+    // Increment Step
+    step++;
+    localStorage.setItem('step', step);
+    updateDisplay(destination);
 });
 
 document.getElementById('arBtn').addEventListener('click', function() {
