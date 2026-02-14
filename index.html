@@ -207,14 +207,13 @@
                 };
             } else {
                 // Block E Logic
-                // Note: Block E is simple 2D mainly, provided logic only returns instructions.
-                // We don't have a 3D point generator for E yet. AR might not work.
-                const instructions = MapServiceE.navigate(startValue, destValue);
+                // Now returns { steps, points }
+                const result = MapServiceE.navigate(startValue, destValue);
 
                 routeObject = {
                     path: [startValue, destValue], // Dummy path structure
-                    points: [], // No AR points for E
-                    instructions: instructions,
+                    points: result.points,
+                    instructions: result.steps,
                     distance: 0, // Not calc
                     startNode: startValue,
                     block: 'E'
