@@ -50,7 +50,7 @@ function updateDisplay(destination) {
 }
 
 // Text-to-Speech Helper
-let isVoiceEnabled = true;
+let isVoiceEnabled = localStorage.getItem('voiceEnabled') !== 'false';
 
 function speak(text) {
     if (!isVoiceEnabled) return;
@@ -69,6 +69,8 @@ function speak(text) {
 
 function toggleVoice() {
     isVoiceEnabled = !isVoiceEnabled;
+    localStorage.setItem('voiceEnabled', isVoiceEnabled);
+    
     const btn = document.getElementById('voiceBtn');
     if (btn) {
         btn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
@@ -83,7 +85,6 @@ function setupVoiceButton() {
     if (!voiceBtn) {
         voiceBtn = document.createElement('button');
         voiceBtn.id = 'voiceBtn';
-        voiceBtn.textContent = "🔊 On";
         voiceBtn.className = "btn"; // Use existing btn class for basic style
         voiceBtn.style.cssText = `
             position: fixed; 
@@ -101,6 +102,9 @@ function setupVoiceButton() {
         document.body.appendChild(voiceBtn);
         voiceBtn.addEventListener('click', toggleVoice);
     }
+    // Set initial state
+    voiceBtn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
+    voiceBtn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
 }
 
 document.getElementById('nextBtn').addEventListener('click', function() {
@@ -126,8 +130,7 @@ document.getElementById('arBtn').addEventListener('click', function() {
     }
 });
 
-    }
-});
+
 
 setupVoiceButton();
 loadRoute();

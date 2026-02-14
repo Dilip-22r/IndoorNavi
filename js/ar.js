@@ -285,7 +285,7 @@ function renderNearbyPOIs(userPos) {
 
 
 let lastSpokenIndex = -1;
-let isVoiceEnabled = true;
+let isVoiceEnabled = localStorage.getItem('voiceEnabled') !== 'false';
 
 function speak(text) {
     if (!isVoiceEnabled) return;
@@ -299,6 +299,8 @@ function speak(text) {
 
 function toggleVoice() {
     isVoiceEnabled = !isVoiceEnabled;
+    localStorage.setItem('voiceEnabled', isVoiceEnabled);
+    
     const btn = document.getElementById('voiceBtn');
     if (btn) {
         btn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
@@ -547,7 +549,6 @@ function setupEvents() {
     if (!voiceBtn) {
         voiceBtn = document.createElement('button');
         voiceBtn.id = 'voiceBtn';
-        voiceBtn.textContent = "🔊 On";
         voiceBtn.style.cssText = `
             position: fixed; 
             top: 20px; 
@@ -562,7 +563,12 @@ function setupEvents() {
         `;
         document.body.appendChild(voiceBtn);
     }
-    voiceBtn.addEventListener('click', toggleVoice);
+    voiceBtn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
+    voiceBtn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
+    // Remove old listeners to avoid duplicates if re-run (though setupEvents usually runs once)
+    // Better to just set onclick or check listeners. 
+    // Simplified:
+    voiceBtn.onclick = toggleVoice;
 }
 
 // --- MINI-MAP LOGIC (EXPANDABLE) ---
