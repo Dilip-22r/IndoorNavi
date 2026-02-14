@@ -858,28 +858,37 @@ function renderNearbyPOIs() {
 
         if (dist < PROXIMITY_RADIUS) {
             // Render Label
+            // Shift Label to LEFT of the node relative to path direction?
+            // Simple X offset for now: -1.5m (Left side of corridor usually)
+            const labelX = localX - 1.5; 
+            
             const label = document.createElement('a-text');
             label.setAttribute('value', nodeName.toUpperCase().replace('C', 'ROOM '));
             label.setAttribute('class', 'poi-label');
-            label.setAttribute('position', `${localX} 2.5 ${localZ}`); // Raised to 2.5m
+            label.setAttribute('position', `${labelX} 2.5 ${localZ}`); // Shifted Left
             label.setAttribute('align', 'center');
             label.setAttribute('color', t.markerColor); // Use theme color
             label.setAttribute('scale', '0.7 0.7 0.7'); // Reduced scale
             // Look at camera
             label.setAttribute('look-at', '[camera]');
             
-            // Add a small dot
+            // Add a small dot (Floor)
             const dot = document.createElement('a-sphere');
             dot.setAttribute('class', 'poi-label');
-            dot.setAttribute('position', `${localX} 1.2 ${localZ}`); // Lowered Dot to 1.2m
-            dot.setAttribute('radius', '0.08'); // Smaller dot
+            dot.setAttribute('position', `${localX} 1.2 ${localZ}`); // Original Pos (Center of Room Entry)
+            dot.setAttribute('radius', '0.08'); 
             dot.setAttribute('color', t.markerColor);
             
-            // Optional: Connector Line
+            // Connector Line (Diagonal from Label to Dot)
             const line = document.createElement('a-entity');
-            line.setAttribute('line', `start: ${localX} 1.2 ${localZ}; end: ${localX} 2.4 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
-            line.setAttribute('class', 'poi-label');
+            line.setAttribute('line', `start: ${labelX} 2.4 ${localZ}; end: ${localX} 1.2 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
             
+            // Note: The dot is at Entrance (Center). Label is Offset.
+            // Let's connect Label to Dot.
+            line.setAttribute('line', `start: ${labelX} 2.4 ${localZ}; end: ${localX} 1.2 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
+            // Actually, let's draw line from Label Bottom to Dot Center
+            line.setAttribute('line', `start: ${labelX} 2.2 ${localZ}; end: ${localX} 1.2 ${localZ}; color: ${t.markerColor}; opacity: 0.5`);
+
             root.appendChild(label);
             root.appendChild(dot);
             root.appendChild(line);
