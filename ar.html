@@ -177,10 +177,17 @@
         style="pointer-events: auto; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; align-items: center; z-index: 1000;">
 
         <!-- Navigation Buttons -->
-        <div style="display: flex; gap: 10px; justify-content: center;">
-            <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡
-                Recenter</button>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡ Recenter</button>
             <button id="nextBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
+
+            <!-- Theme Switcher -->
+            <select id="themeSelect"
+                style="pointer-events: auto; background: rgba(0,0,0,0.8); color: white; border: 1px solid cyan; padding: 10px; border-radius: 10px; font-weight: bold;">
+                <option value="cyberpunk">👾 Cyberpunk</option>
+                <option value="minimalist">🏳️ Minimalist</option>
+                <option value="classic">🟢 Classic</option>
+            </select>
         </div>
 
         <!-- Height Adjustment -->

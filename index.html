@@ -201,7 +201,8 @@
                 path: path,
                 points: points,
                 instructions: instructions,
-                distance: path.length * 5 // Approx distance
+                distance: path.length * 5, // Approx distance
+                startNode: startKey // Needed for POI relative positioning
             };
 
             localStorage.setItem('currentRoute', JSON.stringify(routeObject));
