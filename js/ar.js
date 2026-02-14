@@ -89,6 +89,32 @@ const themes = {
     }
 };
 
+const TRANSLATIONS = {
+    'en-US': {
+        follow: "Follow the glowing line.",
+        arrived: "You have arrived!",
+        step: "Step",
+        error: "Error: No Navigation Data"
+    },
+    'te-IN': {
+        follow: "మెరిసే రేఖను అనుసరించండి.",
+        arrived: "మీరు చేరుకున్నారు!",
+        step: "దశ",
+        error: "లోపం: నావిగేషన్ డేటా లేదు"
+    },
+    'hi-IN': {
+        follow: "चमकती रेखा का अनुसरण करें।",
+        arrived: "आप पहुँच गए हैं!",
+        step: "चरण",
+        error: "त्रुटि: कोई नेविगेशन डेटा नहीं"
+    }
+};
+
+function getTranslation(key) {
+    const lang = localStorage.getItem('appLanguage') || 'en-US';
+    return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS['en-US'][key];
+}
+
 let currentTheme = 'cyberpunk'; // Default
 
 function applyTheme(themeName) {
@@ -290,24 +316,72 @@ let isVoiceEnabled = localStorage.getItem('voiceEnabled') !== 'false';
 function speak(text) {
     if (!isVoiceEnabled) return;
     if ('speechSynthesis' in window) {
-        // Do not cancel previous speech to allow queuing
+        // Do not cancel previous speech to allow queuing (AR needs continuous flow)
+        // But if language changes, maybe we should? No, keep simple.
+        
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
+        
+        // Get Selected Language
+        const lang = localStorage.getItem('appLanguage') || 'en-US';
+        utterance.lang = lang;
+
+        // Find matching voice
+        const voices = window.speechSynthesis.getVoices();
+        let selectedVoice = voices.find(v => v.lang === lang);
+        if (!selectedVoice) {
+            const shortLang = lang.split('-')[0];
+            selectedVoice = voices.find(v => v.lang.startsWith(shortLang));
+        }
+
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+
         window.speechSynthesis.speak(utterance);
     }
 }
 
+// function toggleVoice changes
 function toggleVoice() {
     isVoiceEnabled = !isVoiceEnabled;
     localStorage.setItem('voiceEnabled', isVoiceEnabled);
     
     const btn = document.getElementById('voiceBtn');
     if (btn) {
-        btn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
-        btn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
+        btn.textContent = isVoiceEnabled ? "🔊" : "🔇";
+        btn.style.backgroundColor = isVoiceEnabled ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 68, 68, 0.8)";
     }
     speak(isVoiceEnabled ? "Voice enabled" : "Voice disabled");
 }
+
+// UI creation changes
+    // Voice Toggle (Dynamic)
+    let voiceBtn = document.getElementById('voiceBtn');
+    if (!voiceBtn) {
+        voiceBtn = document.createElement('button');
+        voiceBtn.id = 'voiceBtn';
+        voiceBtn.style.cssText = `
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            z-index: 1001; 
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            background: rgba(0, 0, 0, 0.5); 
+            color: white; 
+            border: 1px solid rgba(255,255,255,0.5); 
+            border-radius: 50%; 
+            font-size: 16px;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+        `;
+        document.body.appendChild(voiceBtn);
+    }
+    voiceBtn.textContent = isVoiceEnabled ? "🔊" : "🔇";
+    voiceBtn.style.backgroundColor = isVoiceEnabled ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 68, 68, 0.8)";
+    voiceBtn.onclick = toggleVoice;
 
 function updateInstructions() {
     const arText = document.getElementById('arText');
@@ -315,11 +389,17 @@ function updateInstructions() {
     const t = themes[currentTheme];
 
     // Get Instruction for current step
-    let instruction = "Follow the glowing line";
-    if (route && route.instructions && route.instructions[currentStepIndex]) {
+    let instruction = getTranslation('follow');
+    
+    // If English, use specific route instruction if available
+    const lang = localStorage.getItem('appLanguage') || 'en-US';
+    if (lang.startsWith('en') && route && route.instructions && route.instructions[currentStepIndex]) {
         instruction = route.instructions[currentStepIndex];
-    } else if (currentStepIndex >= navigationPathPoints.length - 1) {
-        instruction = "You have arrived!";
+    } 
+    
+    // Arrival Check
+    if (currentStepIndex >= navigationPathPoints.length - 1) {
+        instruction = getTranslation('arrived');
     }
 
     // Update UI
@@ -331,8 +411,8 @@ function updateInstructions() {
     // Update Distance/Step info
     if (arDistance) {
         const total = navigationPathPoints.length;
-        arDistance.textContent = `Step ${currentStepIndex + 1}/${total}`; // Compact
-        // arDistance.style.color = t.uiColor; // Optional: Force sync or keep white for contrast
+        const stepLabel = getTranslation('step');
+        arDistance.textContent = `${stepLabel} ${currentStepIndex + 1}/${total}`; 
     }
 
     // Voice Announcement (Only if step changed)
@@ -551,23 +631,24 @@ function setupEvents() {
         voiceBtn.id = 'voiceBtn';
         voiceBtn.style.cssText = `
             position: fixed; 
-            top: 20px; 
-            right: 80px; 
+            top: 10px; 
+            right: 10px; 
             z-index: 1001; 
-            padding: 8px 12px; 
-            background: rgba(0, 0, 0, 0.6); 
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            background: rgba(0, 0, 0, 0.5); 
             color: white; 
-            border: 1px solid white; 
-            border-radius: 5px; 
+            border: 1px solid rgba(255,255,255,0.5); 
+            border-radius: 50%; 
+            font-size: 16px;
             cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
         `;
         document.body.appendChild(voiceBtn);
     }
-    voiceBtn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
-    voiceBtn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
-    // Remove old listeners to avoid duplicates if re-run (though setupEvents usually runs once)
-    // Better to just set onclick or check listeners. 
-    // Simplified:
+    voiceBtn.textContent = isVoiceEnabled ? "🔊" : "🔇";
+    voiceBtn.style.backgroundColor = isVoiceEnabled ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 68, 68, 0.8)";
     voiceBtn.onclick = toggleVoice;
 }
 

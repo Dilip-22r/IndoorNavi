@@ -1,6 +1,59 @@
 let route = null;
 let step = 0;
 
+const TRANSLATIONS = {
+    'en-US': {
+        follow: "Proceed to next waypoint.",
+        arrived: "You have arrived at your destination.",
+        step: "Step",
+        title: "Navigation",
+        current_step: "Current Step:",
+        next_btn: "Next Step",
+        ar_btn: "Open AR View"
+    },
+    'te-IN': {
+        follow: "తదుపరి పాయింట్‌కి వెళ్లండి.",
+        arrived: "మీరు మీ గమ్యాన్ని చేరుకున్నారు.",
+        step: "దశ",
+        title: "నావిగేషన్",
+        current_step: "ప్రస్తుత దశ:",
+        next_btn: "తదుపరి దశ",
+        ar_btn: "AR వీక్షణను తెరవండి"
+    },
+    'hi-IN': {
+        follow: "अगले पड़ाव की ओर बढ़ें।",
+        arrived: "आप अपने गंतव्य पर पहुंच गए हैं।",
+        step: "चरण",
+        title: "नेविगेशन",
+        current_step: "वर्तमान चरण:",
+        next_btn: "अगला कदम",
+        ar_btn: "AR दृश्य खोलें"
+    }
+};
+
+function getTranslation(key) {
+    const lang = localStorage.getItem('appLanguage') || 'en-US';
+    return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS['en-US'][key];
+}
+
+function updateUILanguage() {
+    const lang = localStorage.getItem('appLanguage') || 'en-US';
+    const t = TRANSLATIONS[lang] || TRANSLATIONS['en-US'];
+
+    const titleEl = document.querySelector('h1');
+    if (titleEl) titleEl.textContent = t.title;
+    
+    // Assuming h2 is "Current Step:"? Check HTML separately, maybe dynamic.
+    // Based on remote repo, there's h2. In existing code? No h2 used for step.
+    // Existing code uses `stepCount` and `stepText`.
+    // I will adapt:
+    const nextBtn = document.getElementById('nextBtn');
+    if (nextBtn) nextBtn.textContent = t.next_btn;
+    
+    const arBtn = document.getElementById('arBtn');
+    if (arBtn) arBtn.textContent = t.ar_btn;
+}
+
 function loadRoute() {
     const routeData = localStorage.getItem('currentRoute');
     const stepData = localStorage.getItem('step');
@@ -14,6 +67,7 @@ function loadRoute() {
     route = JSON.parse(routeData);
     step = parseInt(stepData) || 0;
     
+    updateUILanguage();
     updateDisplay(destination);
 }
 
@@ -24,27 +78,39 @@ function updateDisplay(destination) {
 
     const totalPoints = route.points.length;
     
-    const stepTextEl = stepText; // Alias for clarity
-    
+    // Get Language
+    const lang = localStorage.getItem('appLanguage') || 'en-US';
+
     if (step >= totalPoints - 1) {
-        stepText.textContent = `You have arrived at ${destination}!`;
+        // Arrived
+        const arrivedText = getTranslation('arrived');
+        stepText.textContent = arrivedText; // Simplified: just the translated text
         stepCount.textContent = `Total distance: ${route.distance}m`;
         nextBtn.disabled = true;
         nextBtn.textContent = 'Completed';
-        speak("You have arrived at your destination.");
+        speak(arrivedText);
     } else {
-        // Use Pre-calculated instructions from MapService
-        let instruction = "Proceed to next waypoint.";
-        if (route.instructions && route.instructions[step]) {
-            instruction = route.instructions[step];
+        // Instructions
+        let instruction = "";
+
+        if (lang.startsWith('en')) {
+            // English: Use detailed instructions from route if available
+            if (route.instructions && route.instructions[step]) {
+                instruction = route.instructions[step];
+            } else {
+                instruction = getTranslation('follow');
+            }
         } else {
-             instruction = `Move to next point.`;
+            // Non-English: Use Generic Translated String
+            instruction = getTranslation('follow');
         }
-        
+
         stepText.textContent = instruction;
-        stepCount.textContent = `Step ${step + 1} of ${totalPoints - 1} | Distance: ${route.distance}m`;
-        
-        // Speak instruction (Debounced)
+
+        const stepLabel = getTranslation('step');
+        stepCount.textContent = `${stepLabel} ${step + 1} / ${totalPoints - 1} | Distance: ${route.distance}m`;
+
+        // Speak instruction
         speak(instruction);
     }
 }
@@ -62,7 +128,28 @@ function speak(text) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
-        utterance.lang = 'en-US';
+
+        // Get Selected Language
+        const lang = localStorage.getItem('appLanguage') || 'en-US';
+        utterance.lang = lang;
+
+        // CRITICAL: Text-to-Speech often ignores .lang if .voice is not set
+        // We must find a matching voice object.
+        const voices = window.speechSynthesis.getVoices();
+
+        // 1. Try exact match (e.g., 'Google Telugu', 'Lekha')
+        let selectedVoice = voices.find(v => v.lang === lang);
+
+        // 2. Try partial match (e.g., 'te' for 'te-IN')
+        if (!selectedVoice) {
+            const shortLang = lang.split('-')[0];
+            selectedVoice = voices.find(v => v.lang.startsWith(shortLang));
+        }
+
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+
         window.speechSynthesis.speak(utterance);
     }
 }
@@ -73,8 +160,8 @@ function toggleVoice() {
     
     const btn = document.getElementById('voiceBtn');
     if (btn) {
-        btn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
-        btn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
+        btn.textContent = isVoiceEnabled ? "🔊" : "🔇";
+        btn.style.backgroundColor = isVoiceEnabled ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 68, 68, 0.8)";
     }
     // Only speak feedback if enabled, or if disabling (to confirm)
     if (isVoiceEnabled) speak("Voice enabled");
@@ -85,26 +172,29 @@ function setupVoiceButton() {
     if (!voiceBtn) {
         voiceBtn = document.createElement('button');
         voiceBtn.id = 'voiceBtn';
-        voiceBtn.className = "btn"; // Use existing btn class for basic style
+        voiceBtn.className = "btn"; 
         voiceBtn.style.cssText = `
             position: fixed; 
-            top: 20px; 
-            right: 20px; 
+            top: 10px; 
+            right: 10px; 
             z-index: 1001; 
-            padding: 8px 12px; 
-            background: #2196F3; 
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            background: rgba(0, 0, 0, 0.5); 
             color: white; 
-            border: 2px solid white; 
-            border-radius: 5px; 
+            border: 1px solid rgba(255,255,255,0.5); 
+            border-radius: 50%; 
+            font-size: 16px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex; justify-content: center; align-items: center;
         `;
         document.body.appendChild(voiceBtn);
         voiceBtn.addEventListener('click', toggleVoice);
     }
     // Set initial state
-    voiceBtn.textContent = isVoiceEnabled ? "🔊 On" : "🔇 Off";
-    voiceBtn.style.backgroundColor = isVoiceEnabled ? "" : "#ff4444";
+    voiceBtn.textContent = isVoiceEnabled ? "🔊" : "🔇";
+    voiceBtn.style.backgroundColor = isVoiceEnabled ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 68, 68, 0.8)";
 }
 
 document.getElementById('nextBtn').addEventListener('click', function() {

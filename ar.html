@@ -52,18 +52,20 @@
 
         .ar-btn {
             pointer-events: auto;
-            width: 200px;
-            margin: 0 auto;
-            display: block;
-            padding: 10px 20px;
+            min-width: 80px;
+            width: auto;
+            margin: 0;
+            display: inline-block;
+            padding: 8px 12px;
             background: linear-gradient(135deg, #00ffff 0%, #00aaff 100%);
             color: #000;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            white-space: nowrap;
         }
 
         /* Mini-Map */
@@ -159,10 +161,6 @@
         <div class="reticle-lines"></div>
     </div>
 
-    <button id="backBtn"
-        style="position: fixed; top: 10px; left: 10px; z-index: 2000; background: rgba(0,0,0,0.6); color: white; border: 1px solid white; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">⬅
-        Back</button>
-
     <div class="ar-instruction"
         style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; color: white; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; z-index: 2000; width: 80%; max-width: 400px; display: flex; flex-direction: column; align-items: center;">
         <p id="arText" class="ar-text" style="font-size: 1.2rem; font-weight: bold; margin: 0; width: 100%;">
@@ -170,34 +168,40 @@
         <p id="arDistance" class="ar-distance" style="font-size: 0.9rem; margin: 5px 0 0;">Please wait...</p>
     </div>
 
-    <!-- Duplicate controls removed -->
+    <!-- Back Button (Below Instructions) -->
+    <button id="backBtn" onclick="window.location.href='navigation.html'"
+        style="position: fixed; top: 130px; left: 50%; transform: translateX(-50%); z-index: 2000; background: rgba(0,0,0,0.6); color: white; border: 1px solid white; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+        ⬅ Back
+    </button>
 
-    <!-- Controls Container (Fixed at Bottom) -->
+    <!-- Controls Container (Right of Mini-Map) -->
     <div
-        style="pointer-events: auto; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; align-items: center; z-index: 1000;">
+        style="pointer-events: auto; position: fixed; bottom: 20px; left: 190px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; z-index: 1000; width: auto;">
 
-        <!-- Navigation Buttons -->
-        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-            <button id="recenterBtn" class="ar-btn" style="background: #ffaa00; font-size: 14px;">⚡ Recenter</button>
-            <button id="nextBtn" class="ar-btn" style="font-size: 14px;">Next Step</button>
+        <!-- Navigation Buttons Row -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="nextBtn" class="ar-btn" style="min-width: 100px;">Next Step ➡</button>
+            <button id="voiceBtn" class="ar-btn" style="min-width: 40px; padding: 8px;">🔊</button>
+        </div>
+
+        <!-- Height Adjustment & Theme -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div
+                style="display: flex; gap: 5px; align-items: center; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 20px;">
+                <span style="color: cyan; font-size: 12px;">Height:</span>
+                <button id="btnUp" class="ar-btn"
+                    style="width: 30px; min-width: 30px; padding: 2px; background: rgba(0,255,255,0.2); font-size: 12px;">⬆️</button>
+                <button id="btnDown" class="ar-btn"
+                    style="width: 30px; min-width: 30px; padding: 2px; background: rgba(0,255,255,0.2); font-size: 12px;">⬇️</button>
+            </div>
 
             <!-- Theme Switcher -->
             <select id="themeSelect"
-                style="pointer-events: auto; background: rgba(0,0,0,0.8); color: white; border: 1px solid cyan; padding: 10px; border-radius: 10px; font-weight: bold;">
+                style="pointer-events: auto; background: rgba(0,0,0,0.8); color: white; border: 1px solid cyan; padding: 5px; border-radius: 8px; font-weight: bold; font-size: 12px; height: 32px;">
                 <option value="cyberpunk">👾 Cyberpunk</option>
                 <option value="minimalist">🏳️ Minimalist</option>
                 <option value="classic">🟢 Classic</option>
             </select>
-        </div>
-
-        <!-- Height Adjustment -->
-        <div
-            style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 10px;">
-            <span style="color: cyan; font-size: 12px;">Height:</span>
-            <button id="btnUp" class="ar-btn"
-                style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬆️</button>
-            <button id="btnDown" class="ar-btn"
-                style="width: 40px; padding: 5px; background: rgba(0,255,255,0.2);">⬇️</button>
         </div>
     </div>
     </div>
